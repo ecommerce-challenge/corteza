@@ -150,6 +150,11 @@ export default {
           image: images.Geometry,
         },
         {
+          label: this.$t('tab.label'),
+          block: new compose.PageBlockTab(),
+          image: images.Tab,
+        },
+        {
           label: this.$t('navigation.label'),
           block: new compose.PageBlockNavigation(),
           image: images.Navigation,
