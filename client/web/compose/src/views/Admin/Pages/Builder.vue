@@ -474,8 +474,8 @@ export default {
     },
 
     deleteBlock (index) {
-      if (this.blocks[index].kind === 'Tab') {
-        const allTabs = this.blocks.filter(({ kind, options }) => kind === 'Tab' && options.blockIndex !== this.blocks[index].options.blockIndex)
+      if (this.blocks[index].kind === 'Tabs') {
+        const allTabs = this.blocks.filter(({ kind, options }) => kind === 'Tabs' && options.blockIndex !== this.blocks[index].options.blockIndex)
           .map(({ options }) => options.tabs).flat().reduce((unique, o) => {
             if (!unique.some(tab => tab.indexOnMain === o.indexOnMain)) {
               unique.push(o)
@@ -657,27 +657,6 @@ export default {
           this.toastWarning(this.$t('notification:page.invalidBlock'))
           console.log(error)
         }
-      }
-    },
-
-    appendBlock (block, msg) {
-      if (this.blocks.length) {
-        // ensuring we append the block to the end of the page
-        const maxY = this.blocks.map((block) => block.xywh[1]).reduce((acc, val) => {
-          return acc > val ? acc : val
-        }, 0)
-        block.xywh = [0, maxY + 2, 3, 3]
-      }
-
-      // Doing this to avoid blockID duplicates when saved
-      block.blockID = NoID
-      this.editor = { index: undefined, block: compose.PageBlockMaker(block) }
-      this.updateBlocks()
-
-      if (!this.editor) {
-        this.toastSuccess(msg)
-      } else {
-        this.toastErrorHandler(this.$t('notification:page.duplicateFailed'))
       }
     },
 
