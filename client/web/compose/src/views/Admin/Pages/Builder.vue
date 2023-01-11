@@ -141,25 +141,18 @@
 
     <b-modal
       :title="$t('block.general.title')"
+      :ok-title="$t('build.addBlock')"
+      ok-variant="primary"
+      :ok-disabled="isAnyConfiguratorInvalid"
       cancel-variant="link"
       :cancel-title="$t('block.general.label.cancel')"
       size="xl"
       :visible="showCreator"
       body-class="p-0 border-top-0"
       header-class="p-3 pb-0 border-bottom-0"
+      @ok="updateBlocks"
       @hide="editor = undefined"
     >
-      <template #modal-ok>
-        <b-button
-          class="p-0"
-          variant="primary"
-          :disabled="isAnyConfiguratorInvalid"
-          @click="updateBlocks"
-        >
-          {{ $t('build.addBlock') }}
-        </b-button>
-      </template>
-
       <configurator
         v-if="showCreator"
         :namespace="namespace"
@@ -172,24 +165,18 @@
 
     <b-modal
       :title="$t('changeBlock')"
+      :ok-title="$t('label.saveAndClose')"
+      ok-variant="primary"
+      :ok-disabled="isAnyConfiguratorInvalid"
       :cancel-title="$t('label.cancel')"
       cancel-variant="link"
       size="xl"
       :visible="showEditor"
       body-class="p-0 border-top-0"
       header-class="p-3 pb-0 border-bottom-0"
+      @ok="updateBlocks"
       @hide="editor = undefined"
     >
-      <template #modal-ok>
-        <b-button
-          class="p-0"
-          variant="primary"
-          :disabled="isAnyConfiguratorInvalid"
-          @click="updateBlocks"
-        >
-          {{ $t('label.saveAndClose') }}
-        </b-button>
-      </template>
       <configurator
         v-if="showEditor"
         :namespace="namespace"
@@ -386,9 +373,6 @@ export default {
       return this.disableClone ? this.$t('tooltip.saveAsCopy') : ''
     },
 
-    pblocs () {
-      return this.page.blocks
-    },
   },
 
   watch: {
