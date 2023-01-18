@@ -397,7 +397,6 @@ export default {
   },
 
   created () {
-    this.$root.$on('tab-newBlockRequest', this.fulfilNewBlockRequest)
     this.$root.$on('tab-editRequest', this.fulfilEditRequest)
     this.$root.$on('tab-checkState', this.fulfilTabCheckStateRequest)
   },
@@ -416,9 +415,8 @@ export default {
 
   destroyed () {
     window.removeEventListener('paste', this.pasteBlock)
-    this.$root.$off('tab-newBlockRequest')
-    this.$root.$off('tab-editRequest')
-    this.$root.$off('tab-checkState')
+    this.$root.$off('tab-editRequest', this.fulfilEditRequest)
+    this.$root.$off('tab-checkState', this.fulfilTabCheckStateRequest)
   },
 
   methods: {
@@ -438,10 +436,6 @@ export default {
       } else {
         this.isAnyConfiguratorInvalid = false
       }
-    },
-
-    fulfilNewBlockRequest (block) {
-      this.updateBlocks(block)
     },
 
     fulfilEditRequest (index) {
@@ -467,11 +461,13 @@ export default {
             }
             return unique
           }, []).map(({ indexOnMain }) => indexOnMain)
+
         const tobefreed = this.blocks[index].options.tabs.filter(({ indexOnMain }) => !allTabs.includes(indexOnMain))
         tobefreed.forEach(({ indexOnMain }) => {
           this.blocks[indexOnMain].options.tabbed = false
         })
       }
+
       this.blocks.splice(index, 1)
       this.page.blocks = this.blocks
       this.unsavedBlocks.add(index)
