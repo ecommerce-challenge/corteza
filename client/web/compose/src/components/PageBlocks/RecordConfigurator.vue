@@ -44,7 +44,7 @@
               class="p-0 ml-1 mr-auto"
               @click="add"
             >
-              Add +
+              + Add
             </b-button>
 
             <b-button
@@ -59,34 +59,47 @@
         </template>
       </b-form-group>
 
-      <b-form-row
-        v-for="(fc, i) in options.fieldConditions"
-        :key="i"
-        :label="`Condition ${i + 1}`"
+      <b-table-simple
+        v-if="block.options.fieldConditions.length"
+        borderless
       >
-        <b-input-group
-          class="mb-2"
-          size="md"
-        >
-          <vue-select
-            v-model="fc.field"
-            :get-option-label="f => f.label"
-            :placeholder="''"
-            :options="fieldOptions"
-            :reduce="f => f"
-            class="bg-white"
-            @close="(() => $root.$emit('checkState', { items: options.fieldConditions, indicator: 'field' }))"
-          />
-          <b-form-input
-            v-model="fc.condition"
-            placeholder="When should this field be shown?"
-          />
-          <c-input-confirm
-            class="mt-2 ml-2"
-            @confirmed="deleteCondition(i)"
-          />
-        </b-input-group>
-      </b-form-row>
+        <b-tbody>
+          <b-tr
+            v-for="(condition, i) in block.options.fieldConditions"
+            :key="i"
+          >
+            <b-td>
+              <vue-select
+                v-model="condition.field.name"
+                :options="fieldOptions"
+                class="bg-white"
+                @close="(() => $root.$emit('checkState', { items: options.fieldConditions, indicator: 'field' }))"
+              />
+            </b-td>
+
+            <b-td>
+              <b-input-group>
+                <b-input-group-prepend>
+                  <b-button variant="dark">
+                    ƒ
+                  </b-button>
+                </b-input-group-prepend>
+                <b-form-input
+                  v-model="condition.condition"
+                />
+              </b-input-group>
+            </b-td>
+
+            <b-td>
+              <c-input-confirm
+                class="mt-2 ml-2"
+                size="lg"
+                @confirmed="deleteCondition(i)"
+              />
+            </b-td>
+          </b-tr>
+        </b-tbody>
+      </b-table-simple>
     </div>
   </b-tab>
 </template>
@@ -129,6 +142,10 @@ export default {
       })
       return fields
     },
+  },
+
+  created () {
+    console.log(this.fieldOptions)
   },
 
   methods: {
