@@ -599,3 +599,5 @@ geometry:
     lockBounds: Lock bounds
     topLeft: Bounds top left
     lowerRight: Bounds lower right
+reverseReference:
+  label: Reverse reference

@@ -149,6 +149,11 @@ export default {
           block: new compose.PageBlockGeometry(),
           image: images.Geometry,
         },
+        {
+          label: this.$t('reverseReference.label'),
+          block: new compose.PageBlockReverseReference(),
+          image: images.Geometry,
+        },
       ],
     }
   },

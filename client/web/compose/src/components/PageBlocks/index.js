@@ -36,6 +36,8 @@ import NylasBase from './Nylas/NylasBase'
 import NylasConfigurator from './Nylas/NylasConfigurator'
 import GeometryBase from './GeometryBase'
 import GeometryConfigurator from './GeometryConfigurator/index'
+import ReverseReferenceBase from './ReverseReference/Base'
+import ReverseReferenceConfigurator from './ReverseReference/Configurator'
 
 /**
  * List of all known page block components
@@ -77,6 +79,8 @@ const Registry = {
   NylasConfigurator,
   GeometryBase,
   GeometryConfigurator,
+  ReverseReferenceBase,
+  ReverseReferenceConfigurator,
 }
 
 const defaultMode = 'Base'
