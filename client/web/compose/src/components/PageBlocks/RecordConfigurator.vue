@@ -28,32 +28,33 @@
       />
     </b-form-group>
 
+    <hr>
+
     <div>
       <b-form-group
-        :label="$t('sanitizers.label')"
         label-size="lg"
       >
         <template #label>
           <div
             class="d-flex"
           >
-            Condition Fields
+            {{ $t('record.fieldConditions.label') }}
 
             <b-button
               variant="link"
               class="p-0 ml-1 mr-auto"
-              @click="add"
+              @click="addCondition"
             >
-              + Add
+              {{ $t('record.fieldConditions.action') }}
             </b-button>
 
             <b-button
               variant="link"
               :href="`${documentationURL}#value-sanitizers`"
               target="_blank"
-              class="p-0 ml-1"
+              class="p-0"
             >
-              Examples
+              {{ $t('record.fieldConditions.help') }}
             </b-button>
           </div>
         </template>
@@ -70,10 +71,11 @@
           >
             <b-td>
               <vue-select
-                v-model="condition.field.name"
+                v-model="condition.field"
                 :options="fieldOptions"
+                :clearable="false"
+                :selectable="option => !block.options.fieldConditions.find(c => c.field === option)"
                 class="bg-white"
-                @close="(() => $root.$emit('checkState', { items: options.fieldConditions, indicator: 'field' }))"
               />
             </b-td>
 
@@ -86,13 +88,13 @@
                 </b-input-group-prepend>
                 <b-form-input
                   v-model="condition.condition"
+                  :placeholder="$t('record.fieldConditions.placeholder')"
                 />
               </b-input-group>
             </b-td>
 
             <b-td>
               <c-input-confirm
-                class="mt-2 ml-2"
                 size="lg"
                 @confirmed="deleteCondition(i)"
               />
@@ -130,62 +132,28 @@ export default {
     },
 
     fieldOptions () {
-      const nonRequiredFields = this.module.fields.filter(f => !f.isRequired)
-      const unConditionedFields = nonRequiredFields.filter(f => !this.options.fieldConditions.find(fc => fc.field.name === f.name))
-      const fields = unConditionedFields.map(f => {
+      return this.block.options.fields.filter(f => !f.isRequired).map(f => {
         return {
           name: f.name,
           label: f.label,
           fieldID: f.fieldID,
-          isRequired: f.isRequired,
         }
       })
-      return fields
     },
   },
 
-  created () {
-    console.log(this.fieldOptions)
-  },
-
   methods: {
-    add () {
-      if (this.options.fieldConditions.length >= this.module.fields.length) return
+    addCondition () {
+      if (this.options.fieldConditions.length >= this.fieldOptions.length) return
       this.options.fieldConditions.push({
-        field: {},
+        field: null,
         condition: '',
       })
-      this.$root.$emit('checkState', { items: this.options.fieldConditions, indicator: 'field' })
     },
 
     deleteCondition (i) {
       this.options.fieldConditions.splice(i, 1)
-      this.$root.$emit('checkState', { items: this.options.fieldConditions, indicator: 'field' })
     },
   },
 }
 </script>
-
-<style lang="scss" scoped>
-  div.fields {
-    display: flex;
-    flex-flow: row nowrap;
-
-    & > div {
-      flex: 1;
-      margin: 5px;
-
-      button.all {
-        float: right;
-        font-size: 80%;
-      }
-
-      .drag-area {
-        height: 150px;
-        overflow-x: auto;
-        border: 1px solid silver;
-        padding: 2px;
-      }
-    }
-  }
-</style>

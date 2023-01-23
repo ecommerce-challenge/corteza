@@ -236,7 +236,6 @@ import PageBlock from 'corteza-webapp-compose/src/components/PageBlocks'
 import EditorToolbar from 'corteza-webapp-compose/src/components/Admin/EditorToolbar'
 import { compose, NoID } from '@cortezaproject/corteza-js'
 import Configurator from 'corteza-webapp-compose/src/components/PageBlocks/Configurator'
-import { isObject } from 'lodash'
 
 export default {
   i18nOptions: {
@@ -417,23 +416,6 @@ export default {
     deleteBlock (index) {
       this.blocks.splice(index, 1)
       this.page.blocks = this.blocks
-    },
-
-    checkState ({ items, indicator }) {
-      if (!items.length) {
-        this.anyInvalidState = false
-        return
-      }
-      let anyInvalid
-
-      // Check if the property we are checking, i.e indicator, is an object
-      if (isObject(items[0][indicator])) {
-        // If it is an object, check if the object has any values
-        anyInvalid = items.some(i => !Object.values(i[indicator]).length)
-      } else {
-        anyInvalid = items.some(i => !i[indicator])
-      }
-      anyInvalid ? this.anyInvalidState = true : this.anyInvalidState = false
     },
 
     updatePageBlockGrid (blocks) {
