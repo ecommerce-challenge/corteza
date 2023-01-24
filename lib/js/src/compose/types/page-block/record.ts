@@ -2,14 +2,14 @@ import { PageBlock, PageBlockInput, Registry } from './base'
 
 const kind = 'Record'
 
-interface FieldConditions {
-  field: {};
+interface FieldCondition {
+  field: string;
   condition: string;
 }
 
 interface Options {
   fields: unknown[];
-  fieldConditions: FieldConditions[];
+  fieldConditions: FieldCondition[];
 }
 
 const defaults: Readonly<Options> = Object.freeze({

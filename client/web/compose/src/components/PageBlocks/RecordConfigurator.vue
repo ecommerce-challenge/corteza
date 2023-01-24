@@ -42,8 +42,9 @@
 
             <b-button
               variant="link"
-              class="p-0 ml-1 mr-auto"
-              @click="addCondition"
+              class="p-0 ml-1"
+              :disabled="block.options.fields.filter(f => !f.isRequired).length === block.options.fieldConditions.length"
+              @click="addRules"
             >
               {{ $t('record.fieldConditions.action') }}
             </b-button>
@@ -52,7 +53,7 @@
               variant="link"
               :href="`${documentationURL}#value-sanitizers`"
               target="_blank"
-              class="p-0"
+              class="p-0 ml-auto"
             >
               {{ $t('record.fieldConditions.help') }}
             </b-button>
@@ -64,6 +65,22 @@
         v-if="block.options.fieldConditions.length"
         borderless
       >
+        <b-thead>
+          <b-tr>
+            <b-th
+              class="text-primary"
+            >
+              {{ $t('record.fieldConditions.field') }}
+            </b-th>
+            <b-th
+              class="text-primary"
+            >
+              {{ $t('record.fieldConditions.condition') }}
+            </b-th>
+            <b-th />
+          </b-tr>
+        </b-thead>
+
         <b-tbody>
           <b-tr
             v-for="(condition, i) in block.options.fieldConditions"
@@ -72,9 +89,11 @@
             <b-td>
               <vue-select
                 v-model="condition.field"
-                :options="fieldOptions"
-                :clearable="false"
-                :selectable="option => !block.options.fieldConditions.find(c => c.field === option)"
+                :options="block.options.fields"
+                append-to-body
+                :selectable="option => isSelectable(option)"
+                :get-option-label="getOptionLabel"
+                :reduce="option => option.fieldID"
                 class="bg-white"
               />
             </b-td>
@@ -93,10 +112,12 @@
               </b-input-group>
             </b-td>
 
-            <b-td>
+            <b-td
+              class="align-middle"
+              style="min-width: 100px;"
+            >
               <c-input-confirm
-                size="lg"
-                @confirmed="deleteCondition(i)"
+                @confirmed="deleteExpression(i)"
               />
             </b-td>
           </b-tr>
@@ -130,29 +151,26 @@ export default {
       const [year, month] = VERSION.split('.')
       return `https://docs.cortezaproject.org/corteza-docs/${year}.${month}/integrator-guide/compose-configuration/index.html`
     },
-
-    fieldOptions () {
-      return this.block.options.fields.filter(f => !f.isRequired).map(f => {
-        return {
-          name: f.name,
-          label: f.label,
-          fieldID: f.fieldID,
-        }
-      })
-    },
   },
 
   methods: {
-    addCondition () {
-      if (this.options.fieldConditions.length >= this.fieldOptions.length) return
+    addRules () {
       this.options.fieldConditions.push({
-        field: null,
+        field: undefined,
         condition: '',
       })
     },
 
-    deleteCondition (i) {
+    deleteExpression (i) {
       this.options.fieldConditions.splice(i, 1)
+    },
+
+    isSelectable (option) {
+      return !this.block.options.fieldConditions.find(({ field }) => field === option.fieldID) && !option.isRequired
+    },
+
+    getOptionLabel (option) {
+      return option.label || option.name
     },
   },
 }

@@ -221,6 +221,8 @@ record:
     action: + Add
     placeholder: When should this field be displayed?
     help: Example
+    field: Field
+    condition: Condition
 recordList:
   addRecord: Add
   cancelSelection: Cancel
