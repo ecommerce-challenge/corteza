@@ -659,7 +659,7 @@ export default {
 
       processing: false,
       // prefilter from block config
-      prefilter: null,
+      prefilter: undefined,
 
       // raw query string used to build final filter
       query: null,
@@ -692,6 +692,7 @@ export default {
       items: [],
       idPrefix: `rl:${this.blockIndex}`,
       recordListFilter: [],
+      drillDownFilter: undefined,
       showingDeletedRecords: false,
     }
   },
@@ -872,6 +873,8 @@ export default {
       immediate: true,
       handler (recordID = NoID) {
         const { pageID = NoID } = this.page
+
+        this.$root.$on('drill-down-recordList', this.drillDown)
 
         // Set uniqueID so that events dont mix
         if (this.uniqueID) {
@@ -1310,6 +1313,12 @@ export default {
     },
 
     refresh (resetPagination = false) {
+      // this.$root.$emit('drill-down-chart', queryToFilter(this.query, this.prefilter, this.recordListModule.filterFields(this.options.fields), this.recordListFilter))
+      console.log('here')
+
+      resetPagination = resetPagination || !!this.drillDownFilter
+      this.drillDownFilter = undefined
+
       this.pullRecords(resetPagination)
     },
 
@@ -1332,7 +1341,7 @@ export default {
       this.selected = []
 
       // Compute query based on query, prefilter and recordListFilter
-      const query = queryToFilter(this.query, this.prefilter, this.recordListModule.filterFields(this.options.fields), this.recordListFilter)
+      const query = queryToFilter(this.query, this.drillDownFilter || this.prefilter, this.recordListModule.filterFields(this.options.fields), this.recordListFilter)
 
       const { moduleID, namespaceID } = this.recordListModule
       if (this.filter.pageCursor) {
@@ -1436,6 +1445,25 @@ export default {
 
     onImportSuccessful () {
       this.refresh(true)
+    },
+
+    drillDown ({ name, kind, value }) {
+      // this.recordListFilter = [
+      //   {
+      //     filter: [{
+      //       condition: 'Where',
+      //       // Properly find correct kind from field name
+      //       kind: 'String',
+      //       name: `DATE_FORMAT(${name}, '%Y-%m-01')`,
+      //       operator: '=',
+      //       value: `DATE_FORMAT(${value}, '%Y-%m-01')`,
+      //     }],
+      //   },
+      // ]
+
+      this.drillDownFilter = `DATE_FORMAT(${name}, '%Y-%m-01') = DATE_FORMAT('${value}', '%Y-%m-01')`
+
+      this.pullRecords(true)
     },
   },
 }

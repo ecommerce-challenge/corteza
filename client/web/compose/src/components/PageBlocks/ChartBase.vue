@@ -10,6 +10,7 @@
       :chart="chart"
       :record="record"
       :reporter="reporter"
+      @click="foo"
     />
   </wrap>
 </template>
@@ -33,12 +34,16 @@ export default {
   data () {
     return {
       chart: null,
+
+      drillDownFilter: undefined,
     }
   },
 
   mounted () {
     this.fetchChart()
     this.refreshBlock(this.refresh)
+
+    this.$root.$on('drill-down-chart', this.drillDown)
   },
 
   methods: {
@@ -62,6 +67,8 @@ export default {
 
     reporter (r) {
       const nr = { ...r }
+      const filter = this.drillDownFilter || nr.filter
+
       if (nr.filter) {
         // If we use ${record} or ${ownerID} and there is no record, resolve empty
         /* eslint-disable no-template-curly-in-string */
@@ -78,13 +85,24 @@ export default {
       }
 
       const { namespaceID } = this.namespace
-      return this.$ComposeAPI.recordReport({ namespaceID, ...nr })
+      return this.$ComposeAPI.recordReport({ namespaceID, ...nr, filter })
     },
 
     refresh () {
       this.fetchChart({ force: true }).then(() => {
         this.key++
       })
+    },
+
+    drillDown (filter) {
+      this.drillDownFilter = filter
+      this.refresh()
+    },
+
+    foo ({ name }) {
+      const { field } = this.chart.config.reports[0].dimensions[0]
+
+      this.$root.$emit('drill-down-recordList', { name: field, kind: 'DateTime', value: name })
     },
   },
 

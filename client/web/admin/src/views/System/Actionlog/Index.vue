@@ -446,7 +446,7 @@ export default {
         })
     }, 300),
 
-    // Resets pagination & sorting and adds filtering params for drill-down
+    // Resets pagination & sorting and adds filtering params for drill-down-chart
     drillDownLink (query = {}) {
       return {
         name: 'system.actionlog',
