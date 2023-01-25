@@ -122,6 +122,17 @@
                   {{ $t('edit.visible') }}
                 </b-form-checkbox>
               </b-form-group>
+
+              <b-form-group
+                :label="$t('pageIcon')"
+              >
+                <uploader
+                  :endpoint="endpoint"
+                  :max-filesize="$s('compose.Page.Attachments.MaxSize', 100)"
+                  :accepted-files="$s('compose.Page.Attachments.Mimetypes', ['*/*'])"
+                  @uploaded="appendAttachment"
+                />
+              </b-form-group>
             </b-form>
           </b-card>
         </b-col>
@@ -171,6 +182,7 @@ import { mapGetters, mapActions } from 'vuex'
 import EditorToolbar from 'corteza-webapp-compose/src/components/Admin/EditorToolbar'
 import PageTranslator from 'corteza-webapp-compose/src/components/Admin/Page/PageTranslator'
 import pages from 'corteza-webapp-compose/src/mixins/pages'
+import Uploader from 'corteza-webapp-compose/src/components/Public/Page/Attachment/Uploader'
 import { compose, NoID } from '@cortezaproject/corteza-js'
 import { handle } from '@cortezaproject/corteza-vue'
 
@@ -184,6 +196,7 @@ export default {
   components: {
     EditorToolbar,
     PageTranslator,
+    Uploader,
   },
 
   mixins: [
@@ -250,6 +263,12 @@ export default {
       return this.hasChildren && this.page.canDeletePage && !this.page.deletedAt
     },
 
+    endpoint () {
+      return this.$ComposeAPI.pageUploadEndpoint({
+        namespaceID: this.namespace.namespaceID,
+        pageID: this.pageID,
+      })
+    },
   },
 
   watch: {
@@ -295,6 +314,10 @@ export default {
       this.deletePage({ ...this.page, strategy }).then(() => {
         this.$router.push({ name: 'admin.pages' })
       }).catch(this.toastErrorHandler(this.$t('notification:page.deleteFailed')))
+    },
+
+    appendAttachment ({ attachmentID } = {}) {
+      this.page.pageIcons.push(attachmentID)
     },
   },
 }

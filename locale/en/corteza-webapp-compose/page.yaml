@@ -59,6 +59,7 @@ visible: Visible
 delete:
   rebase: Update parent of sub-pages
   cascade: Delete sub-pages
+pageIcon: Page icon
 public:
   record:
     create:
