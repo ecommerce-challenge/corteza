@@ -123,16 +123,40 @@
                 </b-form-checkbox>
               </b-form-group>
 
-              <b-form-group
-                :label="$t('pageIcon')"
+              <b-button
+                variant="light"
+                size="lg"
+                class="text-dark"
+                @click="showModal = true"
               >
-                <uploader
-                  :endpoint="endpoint"
-                  :max-filesize="$s('compose.Page.Attachments.MaxSize', 100)"
-                  :accepted-files="$s('compose.Page.Attachments.Mimetypes', ['*/*'])"
-                  @uploaded="appendAttachment"
-                />
-              </b-form-group>
+                <!-- <font-awesome-icon
+                  :icon="['fas', 'plus']"
+                  class="mr-2"
+                /> -->
+                {{ $t('icon.set') }}
+              </b-button>
+              <b-modal
+                v-model="showModal"
+                size="lg"
+                ok-only
+                :title="$t('icon.configure')"
+                :ok-title="$t('label.saveAndClose')"
+                @ok="onModalSave"
+              >
+                <b-form-group
+                  :label="$t('icon.upload')"
+                >
+                  <uploader
+                    :endpoint="endpoint"
+                    :max-filesize="$s('compose.Page.Attachments.MaxSize', 100)"
+                    :accepted-files="$s('compose.Page.Attachments.Mimetypes', ['*/*'])"
+                    @uploaded="appendAttachment"
+                  />
+                </b-form-group>
+
+                <hr>
+                <!-- list of uploaded icons -->
+              </b-modal>
             </b-form>
           </b-card>
         </b-col>
@@ -219,6 +243,7 @@ export default {
     return {
       modulesList: [],
       page: new compose.Page(),
+      showModal: false,
     }
   },
 
@@ -318,6 +343,10 @@ export default {
 
     appendAttachment ({ attachmentID } = {}) {
       this.page.pageIcons.push(attachmentID)
+    },
+
+    onModalSave () {
+      this.showModal = false
     },
   },
 }

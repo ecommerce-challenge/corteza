@@ -22,6 +22,10 @@ edit:
   edit: Edit page
   pageDescription: Page description
   visible: Page visibility
+icon:
+  configure: Configure page icon
+  set: Set icon
+  upload: Upload icon
 import: 'Import page(s):'
 instructions: Drag and drop pages to adjust the order and hierarchy
 invalid: Invalid configuration
@@ -59,7 +63,6 @@ visible: Visible
 delete:
   rebase: Update parent of sub-pages
   cascade: Delete sub-pages
-pageIcon: Page icon
 public:
   record:
     create:
