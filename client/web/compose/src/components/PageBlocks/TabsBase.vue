@@ -15,7 +15,9 @@
     <b-tabs
       v-else
       v-model="activeTab"
-      content-class="flex-fill"
+      nav-wrapper-class="bg-white white border-bottom"
+      card
+      content-class="flex-fill card overflow-hidden"
       v-bind="{
         align: block.options.style.alignment,
         fill: block.options.style.fillJustify === 'fill',
@@ -25,13 +27,14 @@
         small: block.options.style.appearance === 'small',
         vertical: block.options.style.verticalHorizontal === 'vertical',
       }"
-      class="ml-2 mt-3 mr-2 d-flex flex-column h-100"
+      class="d-flex flex-column h-100"
     >
       <b-tab
         v-for="(tab, index) in options.tabs"
         :key="index"
         :title="tab.block.title ? tab.block.title : `Block-${tab.block.kind}-${tab.indexOnMain}`"
         class="h-100"
+        no-body
         @click="trackTab(index)"
       >
         <page-block-tab

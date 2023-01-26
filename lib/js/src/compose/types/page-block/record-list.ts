@@ -150,7 +150,7 @@ export class PageBlockRecordList extends PageBlock {
       'editable',
       'draggable',
       'linkToParent',
-      'tabbed'
+      'tabbed',
       'showRefresh',
     )
 

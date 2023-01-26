@@ -81,74 +81,78 @@
     <b-table-simple
       v-if="block.options.tabs.length"
       borderless
-      class="w-100"
     >
-      <b-tbody>
-        <draggable
-          v-model="block.options.tabs"
-          :disabled="editFocused"
+      <draggable
+        v-model="block.options.tabs"
+        tag="b-tbody"
+        :disabled="editFocused"
+      >
+        <tr
+          v-for="(tab, index) in block.options.tabs"
+          :key="index"
         >
-          <tr
-            v-for="(tab, index) in block.options.tabs"
-            :key="index"
-          >
-            <td class="align-middle">
-              <b-button
-                variant="link"
-                :title="$t('tabs.tooltip.move')"
-                class="p-0"
-              >
-                <font-awesome-icon
-                  :icon="['fas', 'bars']"
-                  class="grab m-0 text-secondary h4 p-0"
-                />
-              </b-button>
-            </td>
-            <td
-              class="align-middle"
+          <td class="align-middle">
+            <b-button
+              variant="link"
+              :title="$t('tabs.tooltip.move')"
+              class="p-0"
             >
-              <b-input-group>
-                <b-form-select
-                  v-model="tab.indexOnMain"
-                  :title="$t('tabs.tooltip.selectBlock')"
-                  :options="options"
-                  @change="createTab(index)"
-                >
-                  <template #first>
-                    <b-form-select-option
-                      :value="null"
-                      disabled
-                    >
-                      {{ $t('tabs.selectBlock') }}
-                    </b-form-select-option>
-                  </template>
-                </b-form-select>
-                <b-input-group-append>
-                  <b-button
-                    id="popover-edit"
-                    :disabled="(tab.indexOnMain === null)"
-                    :title="$t('tabs.tooltip.edit')"
-                    variant="primary"
-                    @click="editBlock(tab.indexOnMain)"
-                  >
-                    <font-awesome-icon
-                      :icon="['far', 'edit']"
-                    />
-                  </b-button>
-                </b-input-group-append>
-              </b-input-group>
-            </td>
-            <td class="align-middle">
-              <c-input-confirm
-                :title="$t('tabs.tooltip.delete')"
-                size="lg"
-                link
-                @confirmed="deleteTab(index)"
+              <font-awesome-icon
+                :icon="['fas', 'bars']"
+                class="grab m-0 text-light p-0"
               />
-            </td>
-          </tr>
-        </draggable>
-      </b-tbody>
+            </b-button>
+          </td>
+          <td
+            class="align-middle"
+          >
+            <b-input-group>
+              <vue-select
+                v-model="tab.indexOnMain"
+                :title="$t('tabs.tooltip.selectBlock')"
+                :options="options"
+                class="bg-white"
+                :reduce="option => option.value"
+                @input="createTab(index)"
+              >
+                <template #list-footer>
+                  <b-button
+                    v-b-modal.createBlockSelectorTab
+                    variant="primary"
+                    size="sm"
+                    class=" w-100"
+                    :title="$t('tabs.tooltip.newBlock')"
+                  >
+                    {{ $t('tabs.newBlock') }}
+                  </b-button>
+                </template>
+              </vue-select>
+
+              <b-input-group-append>
+                <b-button
+                  id="popover-edit"
+                  :disabled="(tab.indexOnMain === null)"
+                  :title="$t('tabs.tooltip.edit')"
+                  variant="primary"
+                  @click="editBlock(tab.indexOnMain)"
+                >
+                  <font-awesome-icon
+                    :icon="['far', 'edit']"
+                  />
+                </b-button>
+              </b-input-group-append>
+            </b-input-group>
+          </td>
+          <td class="align-middle">
+            <c-input-confirm
+              :title="$t('tabs.tooltip.delete')"
+              size="lg"
+              link
+              @confirmed="deleteTab(index)"
+            />
+          </td>
+        </tr>
+      </draggable>
     </b-table-simple>
 
     <div
@@ -159,12 +163,26 @@
         {{ $t('tabs.noTabs') }}
       </p>
     </div>
+
+    <b-modal
+      id="createBlockSelectorTab"
+      size="lg"
+      scrollable
+      hide-footer
+      :title="$t('tabs.newBlockModal')"
+    >
+      <new-block-selector
+        :record-page="!!module"
+        @select="addBlock"
+      />
+    </b-modal>
   </b-tab>
 </template>
 
 <script>
 import base from './base'
 import draggable from 'vuedraggable'
+import { VueSelect } from 'vue-select'
 
 export default {
   i18nOptions: {
@@ -174,7 +192,10 @@ export default {
   name: 'TabConfigurator',
 
   components: {
+    //  Importing like this because configurator is recursive
+    NewBlockSelector: () => import('corteza-webapp-compose/src/components/Admin/Page/Builder/Selector'),
     draggable,
+    VueSelect,
   },
 
   extends: base,
@@ -221,7 +242,7 @@ export default {
           return []
         }
 
-        return { value: index, text: block.title || `Block-${block.kind}-${index}` }
+        return { value: index, label: block.title || `Block-${block.kind}-${index}` }
       })
     },
   },
@@ -248,6 +269,11 @@ export default {
       this.$root.$emit('tab-checkState')
     },
 
+    addBlock (block, index = undefined) {
+      this.$bvModal.hide('createBlockSelectorTab')
+      this.$root.$emit('tab-newBlockRequest', { block, index })
+    },
+
     cancel () {
       this.retabBlock()
     },
@@ -260,12 +286,14 @@ export default {
         indexOnMain: blockToTab,
       }
 
+      console.log({ newTab, tabIndex, tabs: this.block.options.tabs })
       this.updateTabs(newTab, tabIndex)
       this.$root.$emit('tab-checkState')
       this.editFocused = false
     },
 
     updateTabs (tab, tabIndex) {
+      console.log({ tab, tabIndex, tabs: this.block.options.tabs })
       if (tab.block.kind === 'Tabs') {
         return
       }
@@ -321,25 +349,3 @@ export default {
   },
 }
 </script>
-<style lang="scss" scoped>
-
-.custom-warning {
-  color: red !important;
-}
-
-.preview {
-  bottom: 0;
-  left: 0;
-  z-index: 2;
-  width: 100%;
-  box-shadow: 0 -0.25rem 1rem rgb(0 0 0 / 15%);
-}
-
-.divider{
-  margin-bottom: 15rem;
-}
-
-.tab {
-  background-color: rgba(228, 232, 232, 0.422);
-}
-</style>

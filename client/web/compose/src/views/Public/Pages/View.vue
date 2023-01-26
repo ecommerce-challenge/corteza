@@ -82,6 +82,7 @@ import { mapActions } from 'vuex'
 import Grid from 'corteza-webapp-compose/src/components/Public/Page/Grid'
 import RecordModal from 'corteza-webapp-compose/src/components/Public/Record/Modal'
 import MagnificationModal from 'corteza-webapp-compose/src/components/Public/Page/Block/Modal'
+import AttachmentModal from 'corteza-webapp-compose/src/components/Public/Page/Attachment/Modal'
 import PageTranslator from 'corteza-webapp-compose/src/components/Admin/Page/PageTranslator'
 import { compose, NoID } from '@cortezaproject/corteza-js'
 
@@ -95,6 +96,7 @@ export default {
     RecordModal,
     PageTranslator,
     MagnificationModal,
+    AttachmentModal,
   },
 
   props: {
