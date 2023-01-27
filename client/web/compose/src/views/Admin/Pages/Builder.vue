@@ -143,7 +143,6 @@
       :title="$t('block.general.title')"
       :ok-title="$t('build.addBlock')"
       ok-variant="primary"
-      :ok-disabled="isAnyConfiguratorInvalid"
       cancel-variant="link"
       :cancel-title="$t('block.general.label.cancel')"
       size="xl"
@@ -167,7 +166,6 @@
       :title="$t('changeBlock')"
       :ok-title="$t('label.saveAndClose')"
       ok-variant="primary"
-      :ok-disabled="isAnyConfiguratorInvalid"
       :cancel-title="$t('label.cancel')"
       cancel-variant="link"
       size="xl"
@@ -398,7 +396,6 @@ export default {
 
   created () {
     this.$root.$on('tab-editRequest', this.fulfilEditRequest)
-    this.$root.$on('tab-checkState', this.fulfilTabCheckStateRequest)
   },
 
   mounted () {
@@ -416,7 +413,6 @@ export default {
   destroyed () {
     window.removeEventListener('paste', this.pasteBlock)
     this.$root.$off('tab-editRequest', this.fulfilEditRequest)
-    this.$root.$off('tab-checkState', this.fulfilTabCheckStateRequest)
   },
 
   methods: {
@@ -428,15 +424,6 @@ export default {
       createPage: 'page/create',
       loadPages: 'page/load',
     }),
-
-    fulfilTabCheckStateRequest () {
-      const isAnyTabUnconfigured = this.editor.block.options.tabs.some((tab) => tab.indexOnMain === null)
-      if (isAnyTabUnconfigured) {
-        this.isAnyConfiguratorInvalid = true
-      } else {
-        this.isAnyConfiguratorInvalid = false
-      }
-    },
 
     fulfilEditRequest (index) {
       this.updateBlocks()
@@ -498,6 +485,36 @@ export default {
 
     cloneBlock (index) {
       this.appendBlock({ ...this.blocks[index] }, this.$t('notification:page.cloneSuccess'))
+    },
+
+    makeTab (block) {
+      if (!block.options.tabs.length) return
+      block.options.tabs.forEach((tab, index) => {
+        if (tab.indexOnMain !== null) {
+          this.createTab(tab, index, block)
+        }
+      })
+      this.cleanUpTabs(block)
+    },
+
+    createTab (tab, tabIndex, block) {
+      const blockToTab = this.page.blocks[tab.indexOnMain]
+      const newTab = {
+        block: blockToTab,
+        indexOnMain: tab.indexOnMain,
+        title: tab.title,
+      }
+
+      this.updateTabs(newTab, tabIndex, block)
+    },
+
+    updateTabs (newTab, tabIndex, block) {
+      if (newTab.block.kind === 'Tabs') return
+      block.options.tabs[tabIndex] = newTab
+    },
+
+    cleanUpTabs (block) {
+      block.options.tabs = block.options.tabs.filter(t => t.indexOnMain !== null)
     },
 
     appendBlock (block, msg) {

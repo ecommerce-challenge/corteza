@@ -32,7 +32,7 @@
       <b-tab
         v-for="(tab, index) in options.tabs"
         :key="index"
-        :title="tab.block.title ? tab.block.title : `Block-${tab.block.kind}-${tab.indexOnMain}`"
+        :title="tab.title || tab.block.title || `Block-${tab.block.kind}-${tab.indexOnMain}`"
         class="h-100"
         no-body
         @click="trackTab(index)"

@@ -96,7 +96,6 @@ const defaults: Readonly<Options> = Object.freeze({
 
   selectionButtons: [],
   refreshRate: 0,
-  
   tabbed: false,
   showRefresh: false,
 })

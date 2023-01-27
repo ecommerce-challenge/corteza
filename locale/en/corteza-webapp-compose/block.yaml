@@ -670,10 +670,11 @@ tabs:
   selectBlock: Choose a block
   noTabs: No tabs have been made
   noTabsBase: No tabs have been made yet
-  newBlock: New block
   displayTitle: Display Options
   preview: Live example
   newBlockModal: Add new block
+  form:
+    title: Set a title for your tab
   style:
     appearance:
       tabs: Tabs
@@ -693,6 +694,12 @@ tabs:
     tabPosition:
       top: Top
       bottom: Bottom
+  table:
+    columns:
+      title:
+        label: Title
+      block:
+        label: Block
   tooltip:
     edit: Edit block
     changeTab: Change tab
@@ -702,4 +709,5 @@ tabs:
     delete: Delete tab
     selectBlock: Select a block to tab
     move: Move tab
+    title: Tab title
   label: Tabs
