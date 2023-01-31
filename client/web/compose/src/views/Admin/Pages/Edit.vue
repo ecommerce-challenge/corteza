@@ -123,6 +123,18 @@
                 </b-form-checkbox>
               </b-form-group>
 
+              <b-form-group
+                data-test-id="checkbox-show-sub-pages-in-sidebar"
+                class="d-flex"
+                switch
+              >
+                <b-form-checkbox
+                  v-model="a"
+                >
+                  {{ $t('showSubPages') }}
+                </b-form-checkbox>
+              </b-form-group>
+
               <b-button
                 variant="light"
                 size="lg"
@@ -346,6 +358,8 @@ export default {
     },
 
     onModalSave () {
+      // update icon
+      // update expand value
       this.showModal = false
     },
   },

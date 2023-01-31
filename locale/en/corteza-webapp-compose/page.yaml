@@ -47,6 +47,7 @@ noPages: No pages
 notVisible: Hidden
 pageMoveFailed: Could not move this page
 reordered: Page reordered
+showSubPages: Expand sub-pages in the sidebar
 title: List of Pages
 tooltip:
   view: View page
