@@ -41,6 +41,7 @@
         :hide-clone="inCreating"
         :hide-add="inCreating"
         :show-record-modal="showRecordModal"
+        :record-navigation="recordNavigation"
         @add="handleAdd()"
         @clone="handleClone()"
         @edit="handleEdit()"
@@ -48,11 +49,13 @@
         @undelete="handleUndelete()"
         @back="handleBack()"
         @submit="handleFormSubmit('page.record')"
+        @update-navigation="handleRedirectToPrevOrNext"
       />
     </portal>
   </div>
 </template>
 <script>
+import { mapGetters } from 'vuex'
 import Grid from 'corteza-webapp-compose/src/components/Public/Page/Grid'
 import RecordToolbar from 'corteza-webapp-compose/src/components/Common/RecordToolbar'
 import record from 'corteza-webapp-compose/src/mixins/record'
@@ -112,6 +115,14 @@ export default {
   },
 
   computed: {
+    ...mapGetters({
+      recordIDs: 'ui/recordPaginationIds',
+      getRecordNavigationIndex: 'ui/getRecordNavigationIndex',
+      nextRecordNavigationPrev: 'ui/nextRecordNavigationPrev',
+      nextRecordNavigationNext: 'ui/nextRecordNavigationNext',
+      getNextOrPrevRecordId: 'ui/getNextOrPrevRecordId',
+    }),
+
     portalTopbarTitle () {
       return this.showRecordModal ? 'record-modal-header' : 'topbar-title'
     },
@@ -145,6 +156,13 @@ export default {
       const titlePrefix = this.inCreating ? 'create' : this.inEditing ? 'edit' : 'view'
 
       return this.$t(`page:public.record.${titlePrefix}.title`, { name: name || handle, interpolation: { escapeValue: false } })
+    },
+
+    recordNavigation () {
+      return {
+        next: this.nextRecordNavigationNext(this.recordID),
+        prev: this.nextRecordNavigationPrev(this.recordID),
+      }
     },
   },
 
@@ -243,6 +261,30 @@ export default {
         this.inEditing = true
       } else {
         this.$router.push({ name: 'page.record.edit', params: this.$route.params })
+      }
+    },
+
+    handleRedirectToPrevOrNext (value) {
+      const recordID = this.getNextOrPrevRecordId(this.recordID, value)
+
+      if (recordID !== undefined) {
+        if (this.showRecordModal) {
+          this.$root.$emit('show-record-modal', {
+            recordID,
+            recordPageID: this.page.pageID,
+          })
+        } else {
+          const route = {
+            name: 'page.record',
+            params: {
+              pageID: this.page.pageID,
+              recordID,
+            },
+            query: null,
+          }
+
+          this.$router.push(route)
+        }
       }
     },
   },

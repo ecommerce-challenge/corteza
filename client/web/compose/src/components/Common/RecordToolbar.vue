@@ -6,7 +6,7 @@
   >
     <b-row
       no-gutters
-      class="wrap-with-vertical-gutters align-items-center"
+      class="wrap-with-vertical-gutters align-items-center justify-content-between"
     >
       <div
         class="wrap-with-vertical-gutters align-items-center"
@@ -27,9 +27,32 @@
         </b-button>
       </div>
 
+      <b-button-group v-if="recordNavigation.prev || recordNavigation.next">
+        <b-button
+          pill
+          size="lg"
+          variant="outline-primary"
+          class="mr-2"
+          :disabled="!recordNavigation.prev"
+          @click="$emit('update-navigation', 'prev')"
+        >
+          <font-awesome-icon :icon="['fas', 'angle-left']" />
+        </b-button>
+
+        <b-button
+          size="lg"
+          pill
+          variant="outline-primary"
+          :disabled="!recordNavigation.next"
+          @click="$emit('update-navigation', 'next')"
+        >
+          <font-awesome-icon :icon="['fas', 'angle-right']" />
+        </b-button>
+      </b-button-group>
+
       <div
         v-if="module"
-        class="d-flex wrap-with-vertical-gutters align-items-center ml-auto"
+        class="d-flex wrap-with-vertical-gutters align-items-center"
       >
         <c-input-confirm
           v-if="(isCreated && !settings.hideDelete && !isDeleted)"
@@ -204,6 +227,12 @@ export default {
     showRecordModal: {
       type: Boolean,
       required: false,
+    },
+
+    recordNavigation: {
+      type: Object,
+      required: false,
+      default: () => ({}),
     },
   },
 

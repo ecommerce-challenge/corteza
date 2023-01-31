@@ -610,7 +610,7 @@
 </template>
 <script>
 import { debounce } from 'lodash'
-import { mapGetters } from 'vuex'
+import { mapGetters, mapActions } from 'vuex'
 import base from './base'
 import FieldViewer from 'corteza-webapp-compose/src/components/ModuleFields/Viewer'
 import FieldEditor from 'corteza-webapp-compose/src/components/ModuleFields/Editor'
@@ -619,7 +619,7 @@ import ImporterModal from 'corteza-webapp-compose/src/components/Public/Record/I
 import AutomationButtons from './Shared/AutomationButtons'
 import { compose, validator, NoID } from '@cortezaproject/corteza-js'
 import users from 'corteza-webapp-compose/src/mixins/users'
-import { evaluatePrefilter, queryToFilter } from 'corteza-webapp-compose/src/lib/record-filter'
+import { evaluatePrefilter, queryToFilter, getFieldFilter } from 'corteza-webapp-compose/src/lib/record-filter'
 import { getItem, setItem, removeItem } from 'corteza-webapp-compose/src/lib/local-storage'
 import { components, url } from '@cortezaproject/corteza-vue'
 import draggable from 'vuedraggable'
@@ -921,6 +921,10 @@ export default {
   },
 
   methods: {
+    ...mapActions({
+      loadPaginationRecords: 'ui/loadPaginationRecords',
+    }),
+
     onFilter (filter = []) {
       this.recordListFilter = filter
       this.setStorageRecordListFilter()
@@ -1186,7 +1190,27 @@ export default {
       this.processing = false
     },
 
-    handleRowClicked ({ r: { recordID } }) {
+    handleRowClicked ({ r: { recordID, values, ...record } }) {
+      const { moduleID, namespaceID } = this.recordListModule
+      const field = this.filter.sort.split(' ')[0]
+      const value = values[field] || record[field]
+      const { name, kind } = this.recordListModule.findField(field) || {}
+
+      const query = queryToFilter(this.query, this.prefilter, this.recordListModule.filterFields(this.options.fields), this.recordListFilter)
+      const prevAndNextRecordFilters = [getFieldFilter(name, kind, value, '>='), getFieldFilter(name, kind, value, '<')]
+      const queries = prevAndNextRecordFilters.map(filterQuery => query ? [query, filterQuery].join(' AND ') : filterQuery)
+
+      this.loadPaginationRecords({
+        recordListModule: this.recordListModule,
+        moduleID,
+        namespaceID,
+        queries,
+        filter: {
+          ...this.filter,
+          limit: Math.min(this.pagination.count, 100),
+        },
+      })
+
       if ((this.options.editable && this.editing) || (!this.recordPageID && !this.options.rowViewUrl)) {
         return
       }
