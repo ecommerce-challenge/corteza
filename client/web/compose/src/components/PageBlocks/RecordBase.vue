@@ -18,37 +18,51 @@
         :key="index"
         class="d-flex flex-column mb-3 px-3"
       >
-        <label
-          class="text-primary mb-0"
-          :class="{ 'mb-0': !!(field.options.description || {}).view || false }"
+        <template
+          v-if="canDisplay(index)"
         >
-          {{ field.label || field.name }}
-          <hint
-            :id="field.fieldID"
-            :text="((field.options.hint || {}).view || '')"
-            class="d-inline-block"
-          />
-        </label>
+          <label
+            class="text-primary mb-0"
+            :class="{ 'mb-0': !!(field.options.description || {}).view || false }"
+          >
+            {{ field.label || field.name }}
+            <hint
+              :id="field.fieldID"
+              :text="((field.options.hint || {}).view || '')"
+              class="d-inline-block"
+            />
+          </label>
 
-        <small
-          class="text-muted"
-        >
-          {{ (field.options.description || {}).view }}
-        </small>
-        <div
-          v-if="field.canReadRecordValue"
-          class="value mt-2"
-        >
-          <field-viewer
-            v-bind="{ ...$props, field }"
-          />
-        </div>
-        <i
-          v-else
-          class="text-primary"
-        >
-          {{ $t('field.noPermission') }}
-        </i>
+          <small
+            class="text-muted"
+          >
+            {{ (field.options.description || {}).view }}
+          </small>
+          <div
+            v-if="field.canReadRecordValue"
+            class="value mt-2"
+          >
+            <field-viewer
+              v-bind="{ ...$props, field }"
+            />
+          </div>
+          <i
+            v-else
+            class="text-primary"
+          >
+            {{ $t('field.noPermission') }}
+          </i>
+        </template>
+      </div>
+      <div
+        v-if="evaluating"
+        class="d-flex align-items-center justify-content-center"
+      >
+        <b-spinner
+          type="grow"
+          small
+          variant="primary"
+        />
       </div>
     </div>
   </wrap>
@@ -75,6 +89,13 @@ export default {
   mixins: [
     users,
   ],
+
+  data () {
+    return {
+      fieldConditions: {},
+      evaluating: false,
+    }
+  },
 
   computed: {
     fields () {
@@ -106,8 +127,51 @@ export default {
       handler (recordID) {
         if (recordID && recordID !== NoID) {
           this.fetchUsers(this.fields, [this.record])
+          this.evaluateExpressions()
         }
       },
+    },
+  },
+
+  methods: {
+    evaluateExpressions () {
+      this.evaluating = true
+      const { expressions, variables } = this.prepareFieldConditionsData()
+      this.$SystemAPI
+        .expressionEvaluate({ variables, expressions })
+        .then(res => {
+          this.fieldConditions = res
+          this.evaluating = false
+          return res
+        }).catch(err => {
+          this.evaluating = false
+          return err
+        })
+    },
+
+    prepareFieldConditionsData () {
+      const expressions = {}
+      const variables = {
+        record: {
+          values: {
+            ...this.record.values,
+          },
+        },
+
+      }
+      delete variables.record.values.toJSON
+      this.block.options.fieldConditions.forEach(fc => {
+        expressions[fc.field] = fc.condition
+      })
+      return { expressions, variables }
+    },
+
+    canDisplay (index) {
+      let canDisplay
+      const similar = Object.keys(this.fieldConditions).find(k => k === this.fields[index].fieldID)
+      similar ? canDisplay = this.fieldConditions[similar] : canDisplay = true
+
+      return canDisplay
     },
   },
 
