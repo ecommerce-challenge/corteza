@@ -41,7 +41,7 @@ interface Metric {
 interface Options {
   metrics: Array<Metric>;
   refreshRate: number;
-  refreshEnabled: boolean;
+  showRefresh: boolean;
   tabbed: boolean;
 }
 
@@ -65,8 +65,7 @@ export class PageBlockMetric extends PageBlock {
   applyOptions (o?: Partial<Options>): void {
     if (!o) return
     Apply(this.options, o, Number, 'refreshRate')
-    Apply(this.options, o, Boolean, 'tabbed')
-    Apply(this.options, o, Boolean, 'showRefresh')
+    Apply(this.options, o, Boolean, 'tabbed', 'showRefresh')
     if (o.metrics) {
       this.options.metrics = o.metrics
     }
