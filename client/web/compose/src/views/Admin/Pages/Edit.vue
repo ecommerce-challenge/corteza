@@ -167,7 +167,19 @@
                 </b-form-group>
 
                 <hr>
+
                 <!-- list of uploaded icons -->
+                <!-- <div
+                  class="p-2 h-100"
+                >
+                  <list-loader
+                    kind="page"
+                    :set="options.attachments"
+                    :namespace="namespace"
+                    :mode="options.mode"
+                    class="h-100"
+                  />
+                </div> -->
               </b-modal>
             </b-form>
           </b-card>
@@ -221,6 +233,7 @@ import pages from 'corteza-webapp-compose/src/mixins/pages'
 import Uploader from 'corteza-webapp-compose/src/components/Public/Page/Attachment/Uploader'
 import { compose, NoID } from '@cortezaproject/corteza-js'
 import { handle } from '@cortezaproject/corteza-vue'
+import ListLoader from 'corteza-webapp-compose/src/components/Public/Page/Attachment/ListLoader'
 
 export default {
   i18nOptions: {
@@ -233,6 +246,7 @@ export default {
     EditorToolbar,
     PageTranslator,
     Uploader,
+    ListLoader,
   },
 
   mixins: [
