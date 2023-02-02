@@ -54,16 +54,6 @@
           </i>
         </template>
       </div>
-      <div
-        v-if="evaluating"
-        class="d-flex align-items-center justify-content-center"
-      >
-        <b-spinner
-          type="grow"
-          small
-          variant="primary"
-        />
-      </div>
     </div>
   </wrap>
 </template>
@@ -73,6 +63,7 @@ import base from './base'
 import FieldViewer from 'corteza-webapp-compose/src/components/ModuleFields/Viewer'
 import Hint from 'corteza-webapp-compose/src/components/Common/Hint.vue'
 import users from 'corteza-webapp-compose/src/mixins/users'
+import conditionalFields from 'corteza-webapp-compose/src/mixins/conditionalFields'
 
 export default {
   i18nOptions: {
@@ -88,14 +79,8 @@ export default {
 
   mixins: [
     users,
+    conditionalFields,
   ],
-
-  data () {
-    return {
-      fieldConditions: {},
-      evaluating: false,
-    }
-  },
 
   computed: {
     fields () {
@@ -130,48 +115,6 @@ export default {
           this.evaluateExpressions()
         }
       },
-    },
-  },
-
-  methods: {
-    evaluateExpressions () {
-      this.evaluating = true
-      const { expressions, variables } = this.prepareFieldConditionsData()
-      this.$SystemAPI
-        .expressionEvaluate({ variables, expressions })
-        .then(res => {
-          this.fieldConditions = res
-          this.evaluating = false
-          return res
-        }).catch(err => {
-          this.evaluating = false
-          return err
-        })
-    },
-
-    prepareFieldConditionsData () {
-      const expressions = {}
-      const variables = {
-        record: {
-          values: {
-            ...this.record.values,
-          },
-        },
-
-      }
-      delete variables.record.values.toJSON
-      this.block.options.fieldConditions.forEach(fc => {
-        expressions[fc.field] = fc.condition
-      })
-      return { expressions, variables }
-    },
-
-    canDisplay (index) {
-      let canDisplay
-      const similar = Object.keys(this.fieldConditions).find(k => k === this.fields[index].fieldID)
-      similar ? canDisplay = this.fieldConditions[similar] : canDisplay = true
-
-      return canDisplay
     },
   },
 

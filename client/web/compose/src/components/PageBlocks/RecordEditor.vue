@@ -14,56 +14,62 @@
       class="px-3"
     >
       <div
-        v-for="field in fields"
+        v-for="(field, index) in fields"
         :key="field.id"
         class="mt-3"
       >
         <field-editor
-          v-if="isFieldEditable(field)"
+          v-if="isFieldEditable(field) && canDisplay(index)"
           v-bind="{ ...$props, errors: fieldErrors(field.name) }"
           class="field"
           :field="field"
+          :evaluating="evaluating"
+          @change="onFieldChange(index, field.name, $event)"
         />
         <div
           v-else
         >
-          <label
-            class="text-primary mb-0"
-            :class="{ 'mb-0': !!(field.options.description || {}).view || false }"
+          <template
+            v-if="canDisplay(index)"
           >
-            {{ field.label || field.name }}
-            <hint
-              :id="field.fieldID"
-              :text="((field.options.hint || {}).view || '')"
-              class="d-inline-block"
-            />
-          </label>
-
-          <small
-            class="text-muted"
-          >
-            {{ (field.options.description || {}).view }}
-          </small>
-
-          <div
-            v-if="field.canReadRecordValue"
-            class="value"
-          >
-            <field-viewer
-              :field="field"
-              v-bind="{ ...$props, errors: fieldErrors(field.name) }"
-              value-only
-            />
-          </div>
-          <div
-            v-else
-          >
-            <i
-              class="text-primary"
+            <label
+              class="text-primary mb-0"
+              :class="{ 'mb-0': !!(field.options.description || {}).view || false }"
             >
-              {{ $t('field.noPermission') }}
-            </i>
-          </div>
+              {{ field.label || field.name }}
+              <hint
+                :id="field.fieldID"
+                :text="((field.options.hint || {}).view || '')"
+                class="d-inline-block"
+              />
+            </label>
+
+            <small
+              class="text-muted"
+            >
+              {{ (field.options.description || {}).view }}
+            </small>
+
+            <div
+              v-if="field.canReadRecordValue"
+              class="value"
+            >
+              <field-viewer
+                :field="field"
+                v-bind="{ ...$props, errors: fieldErrors(field.name) }"
+                value-only
+              />
+            </div>
+            <div
+              v-else
+            >
+              <i
+                class="text-primary"
+              >
+                {{ $t('field.noPermission') }}
+              </i>
+            </div>
+          </template>
         </div>
       </div>
     </div>
@@ -76,6 +82,8 @@ import users from 'corteza-webapp-compose/src/mixins/users'
 import FieldEditor from 'corteza-webapp-compose/src/components/ModuleFields/Editor'
 import FieldViewer from 'corteza-webapp-compose/src/components/ModuleFields/Viewer'
 import Hint from 'corteza-webapp-compose/src/components/Common/Hint.vue'
+import conditionalFields from 'corteza-webapp-compose/src/mixins/conditionalFields'
+import { debounce } from 'lodash'
 
 export default {
   i18nOptions: {
@@ -92,6 +100,7 @@ export default {
 
   mixins: [
     users,
+    conditionalFields,
   ],
 
   props: {
@@ -183,6 +192,10 @@ export default {
 
       return !expressions.value
     },
+
+    onFieldChange: debounce(function () {
+      this.evaluateExpressions()
+    }, 500),
   },
 }
 </script>

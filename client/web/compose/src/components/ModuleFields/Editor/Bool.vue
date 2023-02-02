@@ -7,7 +7,17 @@
         :text="hint"
         class="d-inline-block text-primary"
       />
+
+      <b-spinner
+        v-if="evaluating"
+        style="width: .85rem; height: .85rem;"
+        type="grow"
+        small
+        variant="primary"
+        class="mt-1 ml-1"
+      />
     </b-form-checkbox>
+
     <small
       class="form-text font-weight-light text-muted"
     >

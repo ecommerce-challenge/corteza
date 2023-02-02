@@ -61,6 +61,11 @@ export default {
       type: Boolean,
       default: true,
     },
+
+    evaluating: {
+      type: Boolean,
+      default: false,
+    },
   },
 
   computed: {

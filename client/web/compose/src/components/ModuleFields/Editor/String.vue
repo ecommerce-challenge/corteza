@@ -19,9 +19,19 @@
 
         <hint
           :id="field.fieldID"
-          :text="hint"
+          text="hint"
+        />
+
+        <b-spinner
+          v-if="evaluating"
+          style="width: .85rem; height: .85rem;"
+          type="grow"
+          small
+          variant="primary"
+          class="mt-1 ml-1"
         />
       </div>
+
       <small
         class="form-text font-weight-light text-muted"
       >
