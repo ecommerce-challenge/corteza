@@ -7,7 +7,7 @@ import { AreStrings } from '../../../guards'
 const kind = 'Select'
 
 interface SelectOptions extends Options {
-  options: Array<string | { value: string; text?: string }>;
+  options: Array<string | { value: string; text?: string, new?: boolean }>;
   selectType: string;
   multiDelimiter: string;
 }
@@ -42,8 +42,8 @@ export class ModuleFieldSelect extends ModuleField {
         opt = o.options
           .map(value => ({ value, text: value }))
       } else {
-        opt = (o.options as Array<{ value: string; text?: string }>)
-          .map(({ value, text }) => ({ value, text: text || value }))
+        opt = (o.options as Array<{ value: string; text?: string, new?: boolean }>)
+          .map(({ value, text, ...option }) => ({ value, text: text || value, new: option.new }))
       }
 
       this.options.options = opt
