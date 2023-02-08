@@ -53,4 +53,8 @@ export default class Feed {
       }
     }
   }
+
+  isValid (): boolean {
+    return this.options.moduleID !== NoID
+  }
 }
