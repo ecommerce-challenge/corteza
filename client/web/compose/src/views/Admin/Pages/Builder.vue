@@ -396,6 +396,7 @@ export default {
 
   created () {
     this.$root.$on('tab-editRequest', this.fulfilEditRequest)
+    this.$root.$on('tab-createRequest', this.fulfilCreateRequest)
   },
 
   mounted () {
@@ -413,6 +414,7 @@ export default {
   destroyed () {
     window.removeEventListener('paste', this.pasteBlock)
     this.$root.$off('tab-editRequest', this.fulfilEditRequest)
+    this.$root.$off('tab-createRequest', this.fulfilCreateRequest)
   },
 
   methods: {
@@ -428,6 +430,10 @@ export default {
     fulfilEditRequest (index) {
       this.updateBlocks()
       this.editBlock(index)
+    },
+
+    fulfilCreateRequest (block) {
+      this.updateBlocks(block)
     },
 
     addBlock (block, index = undefined) {
@@ -468,18 +474,48 @@ export default {
       this.unsavedBlocks.add(index)
     },
 
-    updateBlocks () {
-      const block = compose.PageBlockMaker(this.editor.block)
-      this.page.blocks = this.blocks
-
-      /**
-       * Check if an existing block has been updated or a new block has been added
-       */
-      if (this.editor.index !== undefined) {
-        this.page.blocks.splice(this.editor.index, 1, block)
-        this.unsavedBlocks.add(this.editor.index)
-      } else {
+    updateBlocks (passedBlock = undefined) {
+      if (passedBlock && 'block' in passedBlock) {
+        const block = compose.PageBlockMaker(passedBlock.block)
+        this.page.blocks = this.blocks
+        const tab = this.editor.block.options.tabs[passedBlock.tabIndex]
         this.page.blocks.push(block)
+        tab.indexOnMain = this.page.blocks.length - 1
+        this.createTab(tab, passedBlock.tabIndex, this.editor.block)
+        block.options.tabbed = true
+      } else {
+        const block = compose.PageBlockMaker(this.editor.block)
+        this.page.blocks = this.blocks
+        let blockIndex
+
+        if (this.editor.index !== undefined) {
+          this.page.blocks.splice(this.editor.index, 1, block)
+          this.unsavedBlocks.add(this.editor.index)
+          blockIndex = this.page.blocks.indexOf(block)
+        } else {
+          this.page.blocks.push(block)
+          this.unsavedBlocks.add(this.page.blocks.length - 1)
+          blockIndex = this.page.blocks.indexOf(block)
+        }
+
+        if (this.editor.block.kind === 'Tabs') {
+          block.options.blockIndex = blockIndex
+          this.makeTab(block)
+          block.options.tabs.forEach((tab) => {
+            this.page.blocks[tab.indexOnMain].options.tabbed = true
+          })
+        }
+
+        // Updating the block if it is tabbed to reflect any changes made on the block
+        if (this.editor.block.kind !== 'Tabs' && this.editor.block.options.tabbed === true) {
+          const allTabBlocks = this.page.blocks.filter(({ kind }) => kind === 'Tabs')
+          allTabBlocks.map(({ options }) => options.tabs).flat().forEach((tab) => {
+            if (tab.indexOnMain === blockIndex) {
+              tab.block = block
+            }
+          })
+        }
+        this.editor = undefined
       }
     },
 
@@ -502,7 +538,7 @@ export default {
       const newTab = {
         block: blockToTab,
         indexOnMain: tab.indexOnMain,
-        title: tab.title,
+        title: tab.title || blockToTab.title,
       }
 
       this.updateTabs(newTab, tabIndex, block)

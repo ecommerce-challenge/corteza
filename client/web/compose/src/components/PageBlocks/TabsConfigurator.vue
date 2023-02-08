@@ -30,6 +30,7 @@
             size="sm"
             :options="style.alignment"
             name="display-options"
+            @input="updateStyle"
           />
         </b-form-group>
         <b-form-group label="Fill or Justify">
@@ -43,26 +44,14 @@
             name="display-options"
           />
         </b-form-group>
-
-        <b-form-group label="Vertical or Horizontal">
-          <b-form-radio-group
-            id="verticalHorizontal"
-            v-model="block.options.style.verticalHorizontal"
-            buttons
-            button-variant="outline-primary"
-            size="sm"
-            :options="style.verticalHorizontal"
-            name="display-options"
-          />
-        </b-form-group>
       </b-row>
     </div>
 
     <div
-      class="d-flex mt-5 pt-3 align-items-center"
+      class="d-flex"
     >
       <h5
-        class="font-weight-light text-primary"
+        class="font-weight-light m-0 p-0 text-primary"
       >
         {{ $t('tabs.title') }}
       </h5>
@@ -71,7 +60,8 @@
         variant="link"
         size="md"
         :title="$t('tabs.tooltip.addTab')"
-        class="h3 text-decoration-none"
+        :disabled="allSelected"
+        class="p-0 ml-3 text-decoration-none"
         @click="Add"
       >
         {{ $t('tabs.addTab') }}
@@ -81,6 +71,7 @@
     <b-table-simple
       v-if="block.options.tabs.length"
       borderless
+      small
     >
       <b-thead>
         <tr>
@@ -105,7 +96,6 @@
       <draggable
         v-model="block.options.tabs"
         tag="b-tbody"
-        :disabled="editFocused"
       >
         <tr
           v-for="(tab, index) in block.options.tabs"
@@ -126,7 +116,7 @@
 
           <b-td
             class="align-middle"
-            style="width: 40%"
+            style="width: 50%"
           >
             <b-form-input
               v-model="tab.title"
@@ -138,49 +128,70 @@
 
           <b-td
             class="align-middle"
+            style="width: 50%"
           >
-            <b-input-group>
+            <div
+              class="d-flex"
+            >
               <vue-select
                 v-model="tab.indexOnMain"
                 :title="$t('tabs.tooltip.selectBlock')"
                 :options="options"
-                class="bg-white"
+                :placeholder="$t('tabs.form.placeholder')"
+                :selectable="option => isSelectable(option)"
+                class="bg-white m-0"
+                append-to-body
+                style="min-width: 95%;"
                 :reduce="option => option.value"
               >
+                <template #option="{ label }">
+                  <p class="mb-0">
+                    {{ label | truncate(25) }}
+                  </p>
+                </template>
+
+                <template #selected-option="{ label }">
+                  <p class="mb-0">
+                    {{ label | truncate(10) }}
+                  </p>
+                </template>
                 <template #list-footer>
                   <b-button
-                    v-b-modal.createBlockSelectorTab
+                    id="CreateBlockSelectorTab"
                     variant="link"
                     size="sm"
+                    class="text-decoration-none"
                     block
                     :title="$t('tabs.tooltip.newBlock')"
+                    @click="makeNewBlock(index)"
                   >
                     {{ $t('tabs.addTab') }}
                   </b-button>
                 </template>
               </vue-select>
 
-              <b-input-group-append>
-                <b-button
-                  id="popover-edit"
-                  :disabled="(tab.indexOnMain === null)"
-                  :title="$t('tabs.tooltip.edit')"
-                  variant="primary"
-                  @click="editBlock(tab.indexOnMain)"
-                >
-                  <font-awesome-icon
-                    :icon="['far', 'edit']"
-                  />
-                </b-button>
-              </b-input-group-append>
-            </b-input-group>
+              <b-button
+                id="popover-edit"
+                :disabled="(tab.indexOnMain === null)"
+                :title="$t('tabs.tooltip.edit')"
+                variant="light"
+                class="border-rad"
+                size="sm"
+                @click="editBlock(tab.indexOnMain)"
+              >
+                <font-awesome-icon
+                  :icon="['far', 'edit']"
+                />
+              </b-button>
+            </div>
           </b-td>
 
-          <td class="align-middle">
+          <td
+            class="text-right align-middle pr-2"
+            style="min-width: 100px;"
+          >
             <c-input-confirm
               :title="$t('tabs.tooltip.delete')"
-              size="lg"
-              link
               @confirmed="deleteTab(index)"
             />
           </td>
@@ -190,7 +201,7 @@
 
     <div
       v-else
-      class="text-center tex-secondary pt-5 pb-5"
+      class="text-center pt-5 pb-5"
     >
       <p>
         {{ $t('tabs.noTabs') }}
@@ -235,32 +246,25 @@ export default {
 
   data () {
     return {
-      alert: false,
-      tabWarning: false,
+      activeIndex: null,
       msg: '',
-      editFocused: false,
       style: {
         appearance: [
-          { text: this.$t('tabs.style.appearance.tabs'), value: 'tabs' },
-          { text: this.$t('tabs.style.appearance.pills'), value: 'pills' },
-          { text: this.$t('tabs.style.appearance.small'), value: 'small' },
+          { text: this.$t('tabs.style.appearance.tabs'), value: 'tabs', disabled: false },
+          { text: this.$t('tabs.style.appearance.pills'), value: 'pills', disabled: false },
+          { text: this.$t('tabs.style.appearance.small'), value: 'small', disabled: false },
         ],
 
         alignment: [
-          { text: this.$t('tabs.style.alignment.left'), value: 'left' },
-          { text: this.$t('tabs.style.alignment.center'), value: 'center' },
-          { text: this.$t('tabs.style.alignment.right'), value: 'right' },
+          { text: this.$t('tabs.style.alignment.left'), value: 'left', disabled: false },
+          { text: this.$t('tabs.style.alignment.center'), value: 'center', disabled: false },
+          { text: this.$t('tabs.style.alignment.right'), value: 'right', disabled: false },
         ],
 
         fillJustify: [
-          { text: this.$t('tabs.style.fillJustify.fill'), value: 'fill' },
-          { text: this.$t('tabs.style.fillJustify.justified'), value: 'justified' },
-          { text: this.$t('tabs.style.fillJustify.none'), value: 'none' },
-        ],
-
-        verticalHorizontal: [
-          { text: this.$t('tabs.style.verticalHorizontal.vertical'), value: 'vertical' },
-          { text: this.$t('tabs.style.verticalHorizontal.horizontal'), value: 'none' },
+          { text: this.$t('tabs.style.fillJustify.fill'), value: 'fill', disabled: false },
+          { text: this.$t('tabs.style.fillJustify.justified'), value: 'justified', disabled: false },
+          { text: this.$t('tabs.style.fillJustify.none'), value: 'none', disabled: false },
         ],
       },
       untabbedBlock: [],
@@ -277,6 +281,10 @@ export default {
 
         return { value: index, label: block.title || `Block-${block.kind}-${index}` }
       })
+    },
+
+    allSelected () {
+      return this.block.options.tabs.length === this.options.length
     },
   },
 
@@ -299,9 +307,27 @@ export default {
       })
     },
 
-    addBlock (block, index = undefined) {
+    makeNewBlock (index) {
+      this.$bvModal.show('createBlockSelectorTab')
+      this.activeIndex = index
+    },
+
+    updateStyle (v) {
+      if (v === 'center') {
+        this.style.fillJustify.find(j => j.value === 'justified').disabled = true
+        this.block.options.style.fillJustify = 'none'
+      } else {
+        this.style.fillJustify.find(j => j.value === 'justified').disabled = false
+      }
+    },
+
+    isSelectable (option) {
+      return !this.block.options.tabs.some(t => t.indexOnMain === option.value)
+    },
+
+    addBlock (block) {
       this.$bvModal.hide('createBlockSelectorTab')
-      // this.$root.$emit('tab-newBlockRequest', { block, index })
+      this.$root.$emit('tab-createRequest', { block, tabIndex: this.activeIndex })
     },
 
     cancel () {
@@ -314,7 +340,6 @@ export default {
         this.untabBlock(tab)
       }
       this.block.options.tabs.splice(tabIndex, 1)
-      this.editFocused = false
     },
 
     untabBlock (tab) {
@@ -336,11 +361,12 @@ export default {
       const isTabAddedToPage = this.page.blocks.filter(({ kind }) => kind === 'Tabs')
         .find(({ options }) => options.blockIndex === this.block.options.blockIndex)
       if (!isTabAddedToPage) {
-        this.alert = true
         this.msg = this.$t('tabs.alertSave')
-        setTimeout(() => {
-          this.alert = false
-        }, 1500)
+        this.$bvToast.toast(this.msg, {
+          title: this.$t('tabs.alertSaveTitle'),
+          variant: 'danger',
+          solid: true,
+        })
         return
       }
       this.$root.$emit('tab-editRequest', index)
@@ -356,3 +382,10 @@ export default {
   },
 }
 </script>
+
+<style scoped>
+.border-rad {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+</style>

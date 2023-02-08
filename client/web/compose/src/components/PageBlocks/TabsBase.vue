@@ -8,7 +8,7 @@
       v-if="!options.tabs.length"
       class="d-flex h-100 align-items-center justify-content-center"
     >
-      <p class="text-secondary mb-0">
+      <p class="mb-0">
         {{ $t('tabs.noTabsBase') }}
       </p>
     </div>
@@ -33,7 +33,9 @@
         v-for="(tab, index) in options.tabs"
         :key="index"
         :title="tab.title || tab.block.title || `Block-${tab.block.kind}-${tab.indexOnMain}`"
-        class="h-100"
+        class="h-100 "
+        title-item-class="text-truncate"
+        title-link-class="text-truncate"
         no-body
         @click="trackTab(index)"
       >

@@ -7,7 +7,6 @@ interface Style {
   appearance: string;
   alignment: string;
   fillJustify: string;
-  verticalHorizontal: string;
 }
 
 interface Tabs {
@@ -26,7 +25,6 @@ const defaults: Readonly<Options> = Object.freeze({
     appearance: 'tabs',
     alignment: 'left',
     fillJustify: 'none',
-    verticalHorizontal: 'none',
   },
   tabs: [],
   blockIndex: null,

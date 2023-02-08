@@ -663,10 +663,11 @@ geometry:
     lowerRight: Bounds lower right
 
 tabs:
-  alertSave: Tab blocks require you to save them first before you can edit them!
-  alertTitle: Set a title for your block!
-  title: Tabbed blocks
-  addTab: + Add Tab
+  alertSave: Tabs need to be saved before you can edit blocks in them
+  alertSaveTitle: Save first
+  alertTitle: Set a title for your block
+  title: Tabs
+  addTab: + Add
   selectBlock: Choose a block
   noTabs: No tabs have been made
   noTabsBase: No tabs have been made yet
@@ -675,6 +676,7 @@ tabs:
   newBlockModal: Add new block
   form:
     title: Set a title for your tab
+    placeholder: Tab a block
   style:
     appearance:
       tabs: Tabs
