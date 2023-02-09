@@ -285,6 +285,7 @@ export default {
       blocks: [],
       board: null,
       unsavedBlocks: new Set(),
+      id: null,
     }
   },
 
@@ -474,28 +475,45 @@ export default {
       this.unsavedBlocks.add(index)
     },
 
+    generateUID () {
+      return Math.random().toString(36).substring(2) + (new Date()).getTime().toString(36)
+    },
+
     updateBlocks (passedBlock = undefined) {
-      if (passedBlock && 'block' in passedBlock) {
+      if (passedBlock && 'block' in passedBlock && this.editor.block.kind === 'Tabs') {
         const block = compose.PageBlockMaker(passedBlock.block)
         this.page.blocks = this.blocks
+        let previousTab
         const tab = this.editor.block.options.tabs[passedBlock.tabIndex]
+
+        /**
+         * Edge-case where you "Add a new block" on a tab where a block already exists.
+         * That previous block should be moved to the main page if it is not tabbed elsewhere.
+         */
+        if (tab.indexOnMain !== undefined) {
+          previousTab = { ...tab }
+        }
+
         this.page.blocks.push(block)
         tab.indexOnMain = this.page.blocks.length - 1
         this.createTab(tab, passedBlock.tabIndex, this.editor.block)
         block.options.tabbed = true
+        this.$root.$emit('builder-createRequestFulfilled', { previousTab })
       } else {
         const block = compose.PageBlockMaker(this.editor.block)
         this.page.blocks = this.blocks
         let blockIndex
+        this.id = this.generateUID()
+        block.kind === 'Tabs' ? block.options.blockIndex = this.id : block.options.blockIndex = undefined
 
         if (this.editor.index !== undefined) {
           this.page.blocks.splice(this.editor.index, 1, block)
           this.unsavedBlocks.add(this.editor.index)
-          blockIndex = this.page.blocks.indexOf(block)
+          blockIndex = this.page.blocks.findIndex(({ options }) => options.blockIndex === this.id)
         } else {
           this.page.blocks.push(block)
           this.unsavedBlocks.add(this.page.blocks.length - 1)
-          blockIndex = this.page.blocks.indexOf(block)
+          blockIndex = this.page.blocks.findIndex(({ options }) => options.blockIndex && options.blockIndex === this.id)
         }
 
         if (this.editor.block.kind === 'Tabs') {
@@ -516,6 +534,7 @@ export default {
           })
         }
         this.editor = undefined
+        this.id = null
       }
     },
 

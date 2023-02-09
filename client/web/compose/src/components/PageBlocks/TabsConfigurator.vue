@@ -290,10 +290,12 @@ export default {
 
   created () {
     this.$root.$on('builder-cancel', this.cancel)
+    this.$root.$on('builder-createRequestFulfilled', this.createRequestFulfilled)
   },
 
   destroyed () {
     this.$root.$off('builder-cancel', this.cancel)
+    this.$root.$off('builder-createRequestFulfilled', this.createRequestFulfilled)
   },
 
   methods: {
@@ -310,6 +312,10 @@ export default {
     makeNewBlock (index) {
       this.$bvModal.show('createBlockSelectorTab')
       this.activeIndex = index
+    },
+
+    createRequestFulfilled ({ previousTab }) {
+      this.untabBlock(previousTab)
     },
 
     updateStyle (v) {
@@ -337,19 +343,24 @@ export default {
     deleteTab (tabIndex) {
       const tab = this.block.options.tabs[tabIndex]
       if (tab.indexOnMain !== null) {
+        this.block.options.tabs.splice(tabIndex, 1)
         this.untabBlock(tab)
+      } else {
+        this.block.options.tabs.splice(tabIndex, 1)
       }
-      this.block.options.tabs.splice(tabIndex, 1)
     },
 
     untabBlock (tab) {
       const tabOccurrence = this.determineTabOccurrence(tab)
-      if (tabOccurrence === 1) {
+      if (tabOccurrence === 0) {
         this.page.blocks[tab.indexOnMain].options.tabbed = false
         this.untabbedBlock.push(tab.indexOnMain)
       }
     },
 
+    /**
+      * In cases where we need to retab a block, this is useful
+      */
     retabBlock () {
       this.untabbedBlock.forEach((index) => {
         this.page.blocks[index].options.tabbed = true
@@ -371,6 +382,11 @@ export default {
       }
       this.$root.$emit('tab-editRequest', index)
     },
+
+    /*
+      * Determine the number of times a block is tabbed
+      * This is used to determine if a block should be tabbed or not
+      */
 
     determineTabOccurrence (tab) {
       const allTabs = this.page.blocks.filter(({ kind, options }) => kind === 'Tabs' && options.blockIndex !== this.block.options.blockIndex)
