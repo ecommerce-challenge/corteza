@@ -4,8 +4,13 @@ import {
   Report,
   Dimension,
   ChartType,
+  TemporalDataPoint,
 } from './util'
 import { getColorschemeColors } from '../../../shared'
+
+// The default dataset post processing function to use.
+// This one simply returns the current value.
+const defaultFx = 'n'
 
 export default class GaugeChart extends BaseChart {
   constructor (def: PartialChart = {}) {
@@ -36,12 +41,37 @@ export default class GaugeChart extends BaseChart {
     return (d.meta?.steps || []).map(({ label }: any) => label)
   }
 
+  private datasetPostProc (data: any, m: Metric): Number {
+    // Define a valid function to evaluate
+    let fxRaw = (m.fx || defaultFx).trim()
+    if (!fxRaw.startsWith('return')) {
+      fxRaw = 'return ' + fxRaw
+    }
+
+    const fx = new Function('n', fxRaw)
+
+    if (data instanceof Object) {
+      const a = data as TemporalDataPoint
+
+      const n = a.y
+
+      a.y = fx(n)
+    }
+    else {
+      data = fx(data)
+    }
+
+    return data
+  }
+
   makeDataset (m: Metric, d: Dimension, data: Array<number|any>, alias: string) {
     const steps = (d.meta?.steps || [])
 
-    const value = data.reduce((acc, cur) => {
+    const accValue = data.reduce((acc, cur) => {
       return !isNaN(cur) ? acc + parseFloat(cur) : acc
     }, 0)
+
+    const value = this.datasetPostProc(accValue, m)
 
     const max = Math.max(...steps.map(({ value }: any) => parseFloat(value)))
 
