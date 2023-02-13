@@ -2,6 +2,7 @@
   <div>
     <div
       @mouseleave="onHover(false)"
+      class="testststestestet"
     >
       <b-sidebar
         v-model="isExpanded"
