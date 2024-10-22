@@ -85,8 +85,11 @@ export default class FunnelChart extends BaseChart {
   }
 
   makeOptions (data: any) {
-    const { colorScheme, noAnimation = false } = this.config
+    const { reports = [], colorScheme, noAnimation = false, toolbox } = this.config
+    const { saveAsImage } = toolbox || {}
+
     const { labels, datasets = [], tooltip } = data
+    const { legend: l } = reports[0] || {}
     const colors = getColorschemeColors(colorScheme)
 
     const tooltipFormatter = `{b}<br />{c} ${tooltip.relative ? ' ({d}%)' : ''}`
@@ -97,6 +100,15 @@ export default class FunnelChart extends BaseChart {
       textStyle: {
         fontFamily: 'Poppins-Regular',
       },
+      toolbox: {
+        feature: {
+          saveAsImage: saveAsImage ? {
+            name: this.name
+          } : undefined,
+        },
+        top: 15,
+        right: 5,
+      },
       tooltip: {
         show: true,
         trigger: 'item',
@@ -104,14 +116,19 @@ export default class FunnelChart extends BaseChart {
         appendToBody: true,
       },
       legend: {
-        show: true,
-        type: 'scroll',
+        show: !l?.isHidden,
+        type: l?.isScrollable ? 'scroll' : 'plain',
+        top: (l?.position?.isDefault ? undefined : l?.position?.top) || undefined,
+        right: (l?.position?.isDefault ? undefined : l?.position?.right) || undefined,
+        bottom: (l?.position?.isDefault ? undefined : l?.position?.bottom) || undefined,
+        left: (l?.position?.isDefault ? l?.align || 'center' : l?.position?.left) || 'auto',
+        orient: l?.orientation || 'horizontal'
       },
       series: datasets.map(({ data }: any) => {
         return {
           type: 'funnel',
           sort: 'descending',
-          top: 35,
+          top: 45,
           bottom: 10,
           left: '5%',
           width: '90%',
@@ -124,7 +141,7 @@ export default class FunnelChart extends BaseChart {
           },
           emphasis: {
             label: {
-              show: false,
+              show: tooltip.fixed,
               fontSize: 14,
             },
           },
@@ -168,7 +185,11 @@ export default class FunnelChart extends BaseChart {
       const report = this.config.reports?.[ri]
       const d = report?.dimensions?.[0] as Dimension
 
-      for (const { value } of d.meta?.fields || []) {
+      let { fields = [] } = d.meta || {}
+      fields = fields.length ? fields : r.labels
+
+      for (let label of fields) {
+        const value = typeof label === 'object' ? label.value : label
         values.push({
           // Use value for label and resolve it on FE (i18n)
           label: value,

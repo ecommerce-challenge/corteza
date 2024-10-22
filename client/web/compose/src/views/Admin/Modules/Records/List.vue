@@ -67,6 +67,7 @@ export default {
   computed: {
     ...mapGetters({
       getModuleByID: 'module/getByID',
+      recordPaginationUsable: 'ui/recordPaginationUsable',
     }),
 
     title () {
@@ -108,7 +109,7 @@ export default {
     fields = fields.length ? fields : this.module.fields
 
     // Init block
-    this.block = new compose.PageBlockRecordList({
+    const block = new compose.PageBlockRecordList({
       blockIndex: 0,
       options: {
         moduleID: this.$attrs.moduleID,
@@ -122,23 +123,42 @@ export default {
         perPage: 14,
         fullPageNavigation: true,
         showTotalCount: true,
+        showDeletedRecordsOption: true,
         presort: 'createdAt DESC',
+        enableRecordPageNavigation: true,
+        hideConfigureFieldsButton: false,
+        inlineRecordEditEnabled: true,
+        customFilterPresets: true,
       },
     })
 
-    // Set allrecords configuration
-    this.block.options = {
-      ...this.block.options,
+    block.options = {
+      ...block.options,
       allRecords: true,
       rowViewUrl: 'admin.modules.record.view',
       rowEditUrl: 'admin.modules.record.edit',
       rowCreateUrl: 'admin.modules.record.create',
     }
+
+    this.block = block
+
+    // If the page changed we need to clear the record pagination since its not relevant anymore
+    if (this.recordPaginationUsable) {
+      this.setRecordPaginationUsable(false)
+    } else {
+      this.clearRecordIDs()
+    }
+  },
+
+  beforeDestroy () {
+    this.setDefaultValues()
   },
 
   methods: {
     ...mapActions({
       updateModule: 'module/update',
+      setRecordPaginationUsable: 'ui/setRecordPaginationUsable',
+      clearRecordIDs: 'ui/clearRecordIDs',
     }),
 
     handleFieldsSave (fields = []) {
@@ -151,6 +171,11 @@ export default {
       this.updateModule(this.module).then(() => {
         this.toastSuccess(this.$t('notification:module.columns.saved'))
       }).catch(this.toastErrorHandler(this.$t('notification:module.columns.saveFailed')))
+    },
+
+    setDefaultValues () {
+      this.block = undefined
+      this.namespace = {}
     },
   },
 }

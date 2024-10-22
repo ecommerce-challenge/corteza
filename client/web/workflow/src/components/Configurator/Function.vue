@@ -28,11 +28,13 @@
           <vue-select
             v-model="functionRef"
             :options="functionTypes"
+            :get-option-key="getOptionTypeKey"
             label="text"
             :selectable="f => !f.disabled"
             :reduce="f => f.value"
             :filter="functionFilter"
             :placeholder="$t('steps:function.configurator.select-function')"
+            :calculate-position="calculateDropdownPosition"
             @input="functionChanged"
           />
         </b-form-group>
@@ -105,8 +107,10 @@
                 <vue-select
                   v-model="a.type"
                   :options="(paramTypes[functionRef][a.target] || [])"
+                  :get-option-key="getOptionParamKey"
                   :filter="argTypeFilter"
                   :clearable="false"
+                  :calculate-position="calculateDropdownPosition"
                   @input="$root.$emit('change-detected')"
                 />
               </b-form-group>
@@ -124,9 +128,11 @@
                     v-model="a.value"
                     :options="workflowOptions"
                     :get-option-label="getWorkflowLabel"
+                    :get-option-key="getOptionWorkflowKey"
                     :reduce="wf => a.type === 'ID' ? wf.workflowID : wf.handle"
                     clearable
-                    placeholder="Search for a workflow"
+                    :placeholder="$t('steps:function.configurator.search-workflow')"
+                    :calculate-position="calculateDropdownPosition"
                     class="bg-white rounded"
                     @input="$root.$emit('change-detected')"
                     @search="searchWorkflows"
@@ -136,10 +142,12 @@
                     v-else-if="a.input.type === 'select'"
                     v-model="a.value"
                     :options="a.input.properties.options"
+                    :get-option-key="getOptionTypeKey"
                     label="text"
                     :filter="varFilter"
                     :reduce="a => a.value"
                     :placeholder="$t('steps:function.configurator.option-select')"
+                    :calculate-position="calculateDropdownPosition"
                     @input="$root.$emit('change-detected')"
                   />
 
@@ -297,6 +305,7 @@
       :ok-title="$t('general:save')"
       :cancel-title="$t('general:cancel')"
       body-class="p-0"
+      no-fade
       @ok="saveExpression"
       @hidden="resetExpression"
     >
@@ -395,18 +404,19 @@ export default {
       return [
         {
           key: 'target',
-          thClass: 'pl-3 py-2',
+          label: this.$t('steps:function.configurator.target'),
+          thClass: 'pl-3',
           tdClass: 'text-truncate pointer',
         },
         {
           key: 'type',
-          thClass: 'py-2',
+          label: this.$t('steps:function.configurator.type'),
           tdClass: 'text-truncate pointer',
         },
         {
           key: 'expr',
           label: this.$t('steps:function.configurator.result'),
-          thClass: 'pr-3 py-2',
+          thClass: 'mr-3',
           tdClass: 'position-relative pointer',
         },
       ]
@@ -657,6 +667,18 @@ export default {
       }
 
       return typeDescriptions[type]
+    },
+
+    getOptionTypeKey ({ value }) {
+      return value
+    },
+
+    getOptionEWorkflowLabelKey ({ workflowID }) {
+      return workflowID
+    },
+
+    getOptionParamKey (type) {
+      return type
     },
   },
 }

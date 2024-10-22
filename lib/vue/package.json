@@ -1,7 +1,7 @@
 {
   "name": "@cortezaproject/corteza-vue",
   "description": "Corteza Vue.js JavaScript/TypeScript libs",
-  "version": "2023.3.0-dev.2",
+  "version": "2023.3.8",
   "license": "Apache-2.0",
   "author": "Denis Arh <denis.arh@crust.tech>",
   "main": "dist/index.js",
@@ -22,7 +22,7 @@
     "pre-commit": "yarn lint"
   },
   "dependencies": {
-    "@cortezaproject/corteza-js": "^2023.3.0-dev.2",
+    "@cortezaproject/corteza-js": "^2023.3.8",
     "@fortawesome/fontawesome-svg-core": "^1.2.26",
     "@fortawesome/free-solid-svg-icons": "^5.12.0",
     "@fortawesome/vue-fontawesome": "^0.1.9",
@@ -41,6 +41,7 @@
     "kind-of": "^6.0.3",
     "lodash": "^4.17.21",
     "moment": "2.29.2",
+    "numeral": "^2.0.6",
     "pdfjs-dist": "2.2.228",
     "pino": "^5.16.0",
     "portal-vue": "^2.1.7",
@@ -48,9 +49,11 @@
     "tiptap": "^1.26.0",
     "tiptap-extensions": "^1.28.4",
     "v-photoswipe": "^1.0.3-1",
+    "vue-color": "^2.8.1",
     "vue-echarts": "^6.2.3",
     "vue-select": "^3.4.0",
     "vue-swatches": "^1.0.4",
+    "vue2-ace-editor": "^0.0.15",
     "vuedraggable": "^2.23.0",
     "vuex": "^3.6.2",
     "websocket-extensions": "^0.1.4",

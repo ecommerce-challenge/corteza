@@ -51,18 +51,19 @@
         id="resource-list"
         ref="resourceList"
         head-variant="light"
+        :fields="_fields"
+        :items="_items"
+        :sort-by.sync="sorting.sortBy"
+        :sort-desc.sync="sorting.sortDesc"
+        :sticky-header="stickyHeader"
+        :tbody-tr-class="tableRowClasses"
         hover
         responsive
         show-empty
         no-sort-reset
         no-local-sorting
         :primary-key="primaryKey"
-        :sort-by.sync="sorting.sortBy"
-        :sort-desc.sync="sorting.sortDesc"
-        :items="_items"
-        :fields="_fields"
-        :tbody-tr-class="tableRowClasses"
-        class="mb-0"
+        class="mh-100 h-100 mb-0"
         @sort-changed="pagination.page = 1"
         @row-clicked="$emit('row-clicked', $event)"
       >
@@ -121,7 +122,10 @@
       </b-table>
     </b-card-body>
 
-    <template #footer>
+    <template
+      v-if="showFooter"
+      #footer
+    >
       <div
         class="d-flex align-items-center justify-content-between"
       >
@@ -230,6 +234,10 @@ export default {
       type: Boolean,
     },
 
+    stickyHeader: {
+      type: Boolean,
+    },
+
     // Are rows clickable
     clickable: {
       type: Boolean,
@@ -269,6 +277,10 @@ export default {
     }
   },
 
+  beforeDestroy () {
+    this.setDefaultValues()
+  },
+
   computed: {
     _fields () {
       const select = this.selectable ? [
@@ -303,12 +315,14 @@ export default {
     },
 
     getPagination () {
-      const { total = 0, limit = 10, page = 1 } = this.pagination
+      let { total = 0, limit = 10, page = 1 } = this.pagination
+      total = isNaN(total) ? 0 : total
 
       const pagination = {
         from: ((page - 1) * limit) + 1,
         to: limit > 0 ? Math.min((page * limit), total) : total,
         count: total,
+        data: total == 1 ? this.translations.resourceSingle : this.translations.resourcePlural
       }
 
       return this.$t(this.translations[total > limit ? 'showingPagination' : 'singlePluralPagination'], pagination)
@@ -321,6 +335,10 @@ export default {
     hasNextPage () {
       return !!this.pagination.nextPage
     },
+
+    showFooter () {
+      return !(this.hideTotal && this.hidePagination)
+    }
   },
 
   methods: {
@@ -381,6 +399,34 @@ export default {
 
       this.$router.replace({ query: { ...this.$route.query, page, pageCursor } })
     },
+
+    setDefaultValues () {
+      this.selected = [],
+      this.selectableItemIDs = []
+    },
   },
 }
 </script>
+
+<style lang="scss">
+#resource-list {
+  td.actions {
+    padding-top: 8px;
+    right: 0;
+    opacity: 0;
+    position: sticky;
+    transition: opacity 0.25s;
+    width: 1%;
+
+    .regular-font {
+      font-family: 'Poppins-Regular' !important;
+    }
+  }
+
+  tr:hover td.actions {
+    opacity: 1;
+    background-color: #F9FAFB;
+    z-index: 1;
+  }
+}
+</style>

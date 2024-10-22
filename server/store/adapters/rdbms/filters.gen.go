@@ -9,9 +9,9 @@ package rdbms
 import (
 	automationType "github.com/cortezaproject/corteza/server/automation/types"
 	composeType "github.com/cortezaproject/corteza/server/compose/types"
+	discoveryType "github.com/cortezaproject/corteza/server/discovery/types"
 	federationType "github.com/cortezaproject/corteza/server/federation/types"
 	actionlogType "github.com/cortezaproject/corteza/server/pkg/actionlog"
-	discoveryType "github.com/cortezaproject/corteza/server/pkg/discovery/types"
 	flagType "github.com/cortezaproject/corteza/server/pkg/flag/types"
 	labelsType "github.com/cortezaproject/corteza/server/pkg/label/types"
 	rbacType "github.com/cortezaproject/corteza/server/pkg/rbac"
@@ -83,6 +83,9 @@ type (
 
 		// optional composePage filter function called after the generated function
 		ComposePage func(*Store, composeType.PageFilter) ([]goqu.Expression, composeType.PageFilter, error)
+
+		// optional composePageLayout filter function called after the generated function
+		ComposePageLayout func(*Store, composeType.PageLayoutFilter) ([]goqu.Expression, composeType.PageLayoutFilter, error)
 
 		// optional credential filter function called after the generated function
 		Credential func(*Store, systemType.CredentialFilter) ([]goqu.Expression, systemType.CredentialFilter, error)
@@ -203,6 +206,10 @@ func ApigwFilterFilter(d drivers.Dialect, f systemType.ApigwFilterFilter) (ee []
 		ee = append(ee, expr)
 	}
 
+	if len(f.ApigwFilterID) > 0 {
+		ee = append(ee, goqu.C("id").In(f.ApigwFilterID))
+	}
+
 	if f.RouteID > 0 {
 		ee = append(ee, goqu.C("rel_route").Eq(f.RouteID))
 	}
@@ -225,6 +232,10 @@ func ApigwRouteFilter(d drivers.Dialect, f systemType.ApigwRouteFilter) (ee []go
 
 	if expr := stateFalseComparison(d, "enabled", f.Disabled); expr != nil {
 		ee = append(ee, expr)
+	}
+
+	if len(f.ApigwRouteID) > 0 {
+		ee = append(ee, goqu.C("id").In(f.ApigwRouteID))
 	}
 
 	if val := strings.TrimSpace(f.Route); len(val) > 0 {
@@ -376,6 +387,10 @@ func AutomationSessionFilter(d drivers.Dialect, f automationType.SessionFilter) 
 	// @todo codegen warning: filtering by Status ([]uint) not supported,
 	//       see rdbms.go.tpl and add an exception
 
+	if len(f.SessionID) > 0 {
+		ee = append(ee, goqu.C("id").In(f.SessionID))
+	}
+
 	if len(f.WorkflowID) > 0 {
 		ee = append(ee, goqu.C("rel_workflow").In(f.WorkflowID))
 	}
@@ -454,6 +469,10 @@ func AutomationWorkflowFilter(d drivers.Dialect, f automationType.WorkflowFilter
 
 	if ss := trimStringSlice(f.WorkflowID); len(ss) > 0 {
 		ee = append(ee, goqu.C("id").In(ss))
+	}
+
+	if val := strings.TrimSpace(f.Handle); len(val) > 0 {
+		ee = append(ee, goqu.C("handle").Eq(f.Handle))
 	}
 
 	if len(f.LabeledIDs) > 0 {
@@ -601,7 +620,7 @@ func ComposeNamespaceFilter(d drivers.Dialect, f composeType.NamespaceFilter) (e
 	}
 
 	if len(f.NamespaceID) > 0 {
-		ee = append(ee, goqu.C("namespace_id").In(f.NamespaceID))
+		ee = append(ee, goqu.C("id").In(f.NamespaceID))
 	}
 
 	if val := strings.TrimSpace(f.Name); len(val) > 0 {
@@ -639,6 +658,10 @@ func ComposePageFilter(d drivers.Dialect, f composeType.PageFilter) (ee []goqu.E
 		ee = append(ee, expr)
 	}
 
+	if len(f.PageID) > 0 {
+		ee = append(ee, goqu.C("id").In(f.PageID))
+	}
+
 	if val := strings.TrimSpace(f.Handle); len(val) > 0 {
 		ee = append(ee, goqu.C("handle").Eq(f.Handle))
 	}
@@ -660,6 +683,52 @@ func ComposePageFilter(d drivers.Dialect, f composeType.PageFilter) (ee []goqu.E
 			goqu.C("handle").ILike("%"+f.Query+"%"),
 			goqu.C("title").ILike("%"+f.Query+"%"),
 			goqu.C("description").ILike("%"+f.Query+"%"),
+		))
+	}
+
+	return ee, f, err
+}
+
+// ComposePageLayoutFilter returns logical expressions
+//
+// This function is called from Store.QueryComposePageLayouts() and can be extended
+// by setting Store.Filters.ComposePageLayout. Extension is called after all expressions
+// are generated and can choose to ignore or alter them.
+//
+// This function is auto-generated
+func ComposePageLayoutFilter(d drivers.Dialect, f composeType.PageLayoutFilter) (ee []goqu.Expression, _ composeType.PageLayoutFilter, err error) {
+
+	if expr := stateNilComparison(d, "deleted_at", f.Deleted); expr != nil {
+		ee = append(ee, expr)
+	}
+
+	if val := strings.TrimSpace(f.Handle); len(val) > 0 {
+		ee = append(ee, goqu.C("handle").Eq(f.Handle))
+	}
+
+	if f.ParentID > 0 {
+		ee = append(ee, goqu.C("parent_id").Eq(f.ParentID))
+	}
+
+	if f.NamespaceID > 0 {
+		ee = append(ee, goqu.C("rel_namespace").Eq(f.NamespaceID))
+	}
+
+	if f.PageID > 0 {
+		ee = append(ee, goqu.C("page_id").Eq(f.PageID))
+	}
+
+	if len(f.PageLayoutID) > 0 {
+		ee = append(ee, goqu.C("id").In(f.PageLayoutID))
+	}
+
+	if len(f.LabeledIDs) > 0 {
+		ee = append(ee, goqu.I("id").In(f.LabeledIDs))
+	}
+
+	if f.Query != "" {
+		ee = append(ee, goqu.Or(
+			goqu.C("handle").ILike("%"+f.Query+"%"),
 		))
 	}
 
@@ -707,8 +776,8 @@ func DalConnectionFilter(d drivers.Dialect, f systemType.DalConnectionFilter) (e
 		ee = append(ee, expr)
 	}
 
-	if len(f.ConnectionID) > 0 {
-		ee = append(ee, goqu.C("id").In(f.ConnectionID))
+	if len(f.DalConnectionID) > 0 {
+		ee = append(ee, goqu.C("id").In(f.DalConnectionID))
 	}
 
 	if val := strings.TrimSpace(f.Handle); len(val) > 0 {
@@ -735,8 +804,12 @@ func DalSensitivityLevelFilter(d drivers.Dialect, f systemType.DalSensitivityLev
 		ee = append(ee, expr)
 	}
 
-	if len(f.SensitivityLevelID) > 0 {
-		ee = append(ee, goqu.C("id").In(f.SensitivityLevelID))
+	if len(f.DalSensitivityLevelID) > 0 {
+		ee = append(ee, goqu.C("id").In(f.DalSensitivityLevelID))
+	}
+
+	if val := strings.TrimSpace(f.Handle); len(val) > 0 {
+		ee = append(ee, goqu.C("handle").Eq(f.Handle))
 	}
 
 	return ee, f, err
@@ -980,6 +1053,10 @@ func QueueFilter(d drivers.Dialect, f systemType.QueueFilter) (ee []goqu.Express
 
 	if expr := stateNilComparison(d, "deleted_at", f.Deleted); expr != nil {
 		ee = append(ee, expr)
+	}
+
+	if len(f.QueueID) > 0 {
+		ee = append(ee, goqu.C("id").In(f.QueueID))
 	}
 
 	if f.Query != "" {

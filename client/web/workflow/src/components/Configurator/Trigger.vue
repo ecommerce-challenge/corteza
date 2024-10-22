@@ -23,10 +23,12 @@
           <vue-select
             v-model="item.triggers.resourceType"
             :options="resourceTypeOptions"
+            :get-option-key="getOptionTypeKey"
             label="text"
             :reduce="r => r.value"
             :filter="resTypeFilter"
             :placeholder="$t('steps:trigger.configurator.select-resource-type')"
+            :calculate-position="calculateDropdownPosition"
             @input="resourceChanged"
           />
         </b-form-group>
@@ -39,10 +41,12 @@
           <vue-select
             v-model="item.triggers.eventType"
             :options="eventTypeOptions"
+            :get-option-key="getOptionEventTypeKey"
             label="eventType"
             :reduce="e => e.eventType"
             :filter="evtTypeFilter"
             :placeholder="$t('steps:trigger.configurator.select-event-type')"
+            :calculate-position="calculateDropdownPosition"
             @input="eventChanged"
           />
         </b-form-group>
@@ -142,10 +146,12 @@
                 <vue-select
                   v-model="c.name"
                   :options="constraintNameTypes"
+                  :get-option-key="getOptionTypeKey"
                   label="text"
                   :reduce="c => c.value"
                   :filter="constrFilter"
                   :placeholder="$t('steps:trigger.configurator.select-constraint-type')"
+                  :calculate-position="calculateDropdownPosition"
                   @input="$root.$emit('change-detected')"
                 />
               </b-form-group>
@@ -157,9 +163,11 @@
                 <vue-select
                   v-model="c.op"
                   :options="constraintOperatorTypes"
+                  :get-option-key="getOptionTypeKey"
                   label="text"
                   :reduce="c => c.value"
                   :placeholder="$t('steps:trigger.configurator.select-operator')"
+                  :calculate-position="calculateDropdownPosition"
                   @input="$root.$emit('change-detected')"
                 />
               </b-form-group>
@@ -453,7 +461,11 @@ export default {
 
     eventChanged () {
       this.item.triggers.constraints = []
-      this.addConstraint()
+
+      if (['onTimestamp', 'onInterval'].includes(this.item.triggers.eventType)) {
+        this.addConstraint()
+      }
+
       this.$root.$emit('change-detected')
       this.updateDefaultName()
     },
@@ -480,6 +492,14 @@ export default {
         value = value.charAt(0).toUpperCase() + value.slice(1)
         this.$emit('update-default-value', { value, force: !this.item.node.value })
       }
+    },
+
+    getOptionTypeKey ({ value }) {
+      return value
+    },
+
+    getOptionEventTypeKey ({ eventType }) {
+      return eventType
     },
   },
 }

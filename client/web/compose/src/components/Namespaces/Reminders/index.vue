@@ -1,8 +1,9 @@
 <template>
-  <div>
+  <div class="d-flex flex-column h-100">
     <list
       v-if="!edit"
       :reminders="reminders"
+      class="flex-fill"
       @edit="onEdit"
       @dismiss="onDismiss"
       @delete="onDelete"
@@ -11,8 +12,10 @@
     <edit
       v-else
       :edit="edit"
-      :my-i-d="$auth.user.userID"
       :users="users"
+      class="flex-fill"
+      @dismiss="onDismiss"
+      @back="onCancel()"
       @save="onSave"
     />
   </div>
@@ -43,7 +46,7 @@ export default {
     }),
   },
 
-  created () {
+  mounted () {
     this.fetchReminders()
     // @todo remove this, when sockets get implemented
     this.$root.$on('reminders.pull', this.fetchReminders)
@@ -73,36 +76,34 @@ export default {
     },
 
     onSave (r) {
-      let h = 'reminderCreate'
-      if (r.reminderID && r.reminderID !== NoID) {
-        h = 'reminderUpdate'
-      }
-      this.$SystemAPI[h](r).then(r => {
-        this.fetchReminders()
+      const endpoint = r.reminderID && r.reminderID !== NoID ? 'reminderUpdate' : 'reminderCreate'
+      this.$SystemAPI[endpoint](r).then(() => {
+        return this.fetchReminders()
+      }).then(() => {
+        this.onCancel()
         this.$Reminder.prefetch()
       })
-
-      this.onCancel()
     },
 
     onCancel () {
-      this.edit = null
+      this.edit = undefined
     },
 
-    onDismiss (r) {
-      this.$SystemAPI.reminderDismiss(r).then(() => {
+    onDismiss ({ reminderID }, value) {
+      const endpoint = value ? 'reminderDismiss' : 'reminderUndismiss'
+      this.$SystemAPI[endpoint]({ reminderID }).then(() => {
         this.fetchReminders()
       })
     },
 
-    onDelete (r) {
-      this.$SystemAPI.reminderDelete(r).then(() => {
+    onDelete ({ reminderID }) {
+      this.$SystemAPI.reminderDelete({ reminderID }).then(() => {
         this.fetchReminders()
       })
     },
 
-    fetchReminders () {
-      this.$SystemAPI.reminderList({
+    async fetchReminders () {
+      return this.$SystemAPI.reminderList({
         assignedTo: this.$auth.user.userID,
         limit: 0,
       }).then(({ set: reminders = [] }) => {

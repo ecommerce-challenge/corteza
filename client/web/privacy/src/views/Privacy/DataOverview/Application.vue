@@ -20,7 +20,9 @@
           :options="connections"
           :clearable="false"
           :placeholder="$t('connection.placeholder')"
+          :calculate-position="calculateDropdownPosition"
           :get-option-label="({ handle, meta }) => meta.name || handle"
+          :get-option-key="getOptionKey"
           class="h-100 bg-white"
         />
       </b-form-group>
@@ -61,6 +63,7 @@
         :back-link="{ name: 'data-overview' }"
       >
         <b-button
+          data-test-id="button-request-deletion"
           :disabled="processing.connections || processing.sensitiveData"
           variant="light"
           size="lg"
@@ -71,6 +74,7 @@
         </b-button>
 
         <b-button
+          data-test-id="button-request-correction"
           :disabled="processing.connections || processing.sensitiveData"
           variant="primary"
           size="lg"
@@ -160,6 +164,10 @@ export default {
             this.processing.sensitiveData = false
           })
       }
+    },
+
+    getOptionKey ({ connectionID }) {
+      return connectionID
     },
   },
 }

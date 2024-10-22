@@ -77,7 +77,7 @@ export default {
     maxPages: {
       required: false,
       type: Number,
-      default: 5,
+      default: 25,
     },
 
     initialScale: {
@@ -124,6 +124,10 @@ export default {
     }
 
     this.$nextTick(() => this.init())
+  },
+
+  beforeDestroy () {
+    this.setDefaultValues()
   },
 
   methods: {
@@ -288,13 +292,20 @@ export default {
       this.loadError = err
       this.$emit('error', err)
     },
+
+    setDefaultValues () {
+      this.document = null
+      this.pages = []
+      this.show = false
+      this.loadError = undefined
+    },
   },
 }
 </script>
 
 <style lang="scss" scoped>
-$white: white !default;
-$danger: red !default;
+$white: #FFFFFF !default;
+$danger: #E54122 !default;
 
 .doc-msg {
   display: flex;

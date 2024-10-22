@@ -1,31 +1,37 @@
 <template>
   <b-form-group
-    label-class="text-primary"
+    :label-cols-md="horizontal && '5'"
+    :label-cols-xl="horizontal && '4'"
+    :content-cols-md="horizontal && '7'"
+    :content-cols-xl="horizontal && '8'"
     :class="formGroupStyleClasses"
   >
     <template
-      v-if="!valueOnly"
       #label
     >
       <div
-        class="d-flex align-items-top"
+        v-if="!valueOnly"
+        class="d-flex align-items-center text-primary p-0"
       >
-        <label
-          class="mb-0"
+        <span
+          class="d-inline-block mw-100 py-1"
+          :title="label"
         >
           {{ label }}
-        </label>
+        </span>
 
         <hint
-          :id="field.fieldID"
           :text="hint"
         />
+
+        <slot name="tools" />
       </div>
-      <small
-        class="text-muted"
+      <div
+        class="small text-muted"
+        :class="{ 'mb-1': description }"
       >
         {{ description }}
-      </small>
+      </div>
     </template>
 
     <multi
@@ -44,7 +50,7 @@
           :get-option-label="getOptionLabel"
           :get-option-key="getOptionKey"
           :append-to-body="appendToBody"
-          :calculate-position="calculatePosition"
+          :calculate-position="calculateDropdownPosition"
           :clearable="false"
           :filterable="false"
           :selectable="option => option.selectable"
@@ -70,7 +76,7 @@
           :get-option-label="getOptionLabel"
           :get-option-key="getOptionKey"
           :append-to-body="appendToBody"
-          :calculate-position="calculatePosition"
+          :calculate-position="calculateDropdownPosition"
           :filterable="false"
           :selectable="option => option.selectable"
           :loading="processing"
@@ -97,7 +103,7 @@
           :get-option-key="getOptionKey"
           :value="getUserByIndex(ctx.index)"
           :append-to-body="appendToBody"
-          :calculate-position="calculatePosition"
+          :calculate-position="calculateDropdownPosition"
           :clearable="false"
           :filterable="false"
           :selectable="option => option.selectable"
@@ -128,7 +134,7 @@
         :get-option-key="getOptionKey"
         :value="getUserByIndex()"
         :append-to-body="appendToBody"
-        :calculate-position="calculatePosition"
+        :calculate-position="calculateDropdownPosition"
         :filterable="false"
         :selectable="option => option.selectable"
         :loading="processing"
@@ -154,7 +160,6 @@ import { debounce } from 'lodash'
 import base from './base'
 import { VueSelect } from 'vue-select'
 import { mapActions, mapGetters } from 'vuex'
-import calculatePosition from 'corteza-webapp-compose/src/mixins/vue-select-position'
 import Pagination from '../Common/Pagination.vue'
 
 export default {
@@ -168,10 +173,6 @@ export default {
   },
 
   extends: base,
-
-  mixins: [
-    calculatePosition,
-  ],
 
   data () {
     return {
@@ -198,7 +199,12 @@ export default {
 
     options () {
       return this.users.map(u => {
-        return { ...u, selectable: this.field.isMulti ? !(this.value || []).includes(u.userID) : this.value !== u.userID }
+        return {
+          ...u,
+          selectable: this.field.isMulti && !this.field.options.isUniqueMultiValue
+            ? this.value !== u.userID
+            : !(this.value || []).includes(u.userID),
+        }
       })
     },
 
@@ -264,9 +270,13 @@ export default {
     this.fetchUsers()
   },
 
+  beforeDestroy () {
+    this.setDefaultValues()
+  },
+
   methods: {
     ...mapActions({
-      resolveUsers: 'user/fetchUsers',
+      resolveUsers: 'user/resolveUsers',
       addUserToResolved: 'user/push',
     }),
 
@@ -293,7 +303,7 @@ export default {
         // update list of resolved users for every item we add
         this.addUserToResolved({ ...user })
 
-        // update valie on record
+        // update value on record
         const { userID } = user
         if (this.field.isMulti) {
           if (index >= 0) {
@@ -354,6 +364,12 @@ export default {
 
     goToPage (next = true) {
       this.filter.pageCursor = next ? this.filter.nextPage : this.filter.prevPage
+    },
+
+    setDefaultValues () {
+      this.processing = false
+      this.users = []
+      this.filter = {}
     },
   },
 }

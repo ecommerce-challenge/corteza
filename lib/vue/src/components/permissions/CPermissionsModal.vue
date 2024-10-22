@@ -11,6 +11,7 @@
       :ok-title="labels.save"
       :cancel-title="labels.cancel"
       cancel-variant="light"
+      no-fade
       body-class="d-flex flex-column p-0"
       class="h-100 overflow-hidden"
       @hide="onHide"
@@ -54,7 +55,9 @@
               label="name"
               :clearable="false"
               :options="roles"
+              :get-option-key="getOptionRoleKey"
               append-to-body
+              :calculate-position="calculateDropdownPosition"
               class="h-100 bg-white"
               @input="onRoleChange"
             />
@@ -171,6 +174,7 @@
       ok-only
       :ok-title="labels.add.save"
       :ok-disabled="!addEnabled"
+      no-fade
       @ok="onAddEval"
     >
       <b-form-group
@@ -183,11 +187,13 @@
           key="roleID"
           v-model="add.roleID"
           :options="roles"
+          :get-option-key="getOptionRoleKey"
           label="name"
           multiple
           clearable
           :disabled="!!add.userID"
           :placeholder="labels.add.role.placeholder"
+          :calculate-position="calculateDropdownPosition"
           class="bg-white"
         />
       </b-form-group>
@@ -204,9 +210,11 @@
           :disabled="!!add.roleID.length"
           :options="userOptions"
           :get-option-label="getUserLabel"
+          :get-option-key="getOptionUserKey"
           label="name"
           clearable
           :placeholder="labels.add.user.placeholder"
+          :calculate-position="calculateDropdownPosition"
           class="bg-white"
           @search="searchUsers"
         />
@@ -218,6 +226,7 @@
 import { modalOpenEventName, split } from './def.ts'
 import { VueSelect } from 'vue-select'
 import Rules from './form/Rules.vue'
+import calculateDropdownPosition from '../../mixins/vue-select-position'
 
 export default {
   i18nOptions: {
@@ -228,6 +237,10 @@ export default {
     Rules,
     VueSelect,
   },
+
+  mixins: [
+    calculateDropdownPosition
+  ],
 
   props: {
     labels: {
@@ -317,7 +330,16 @@ export default {
   mounted () {
     this.searchUsers('', () => {})
 
-    this.$root.$on(modalOpenEventName, ({ resource, title, target, allSpecific }) => {
+    this.$root.$on(modalOpenEventName, this.loadModal)
+  },
+
+  beforeDestroy () {
+    this.destroyEvents()
+    this.setDefaultValues()
+  },
+
+  methods: {
+    loadModal ({ resource, title, target, allSpecific }) {
       this.resource = resource
       this.title = title
       this.target = target
@@ -332,13 +354,13 @@ export default {
         } else if (this.currentRole) {
           const { roleID } = this.currentRole
           this.processing = true
-  
+
           return this.fetchRules(roleID).then(() => {
             return Promise.all(this.evaluate.map(e => {
               const { userID } = e.userID || {}
               let { roleID = [] } = e
               roleID = roleID.map(({ roleID }) => roleID)
-    
+
               return this.evaluatePermissions({ roleID, userID }).then(rules => {
                 return {
                   ...e,
@@ -351,15 +373,8 @@ export default {
           })
         }
       })
+    },
 
-    })
-  },
-
-  destroyed () {
-    this.$root.$off(modalOpenEventName)
-  },
-
-  methods: {
     onHide () {
       this.clear()
     },
@@ -558,6 +573,34 @@ export default {
 
       return this.$t(`permissions:ui.tooltip.unknown-context.${isUser ? 'user' : 'role'}`)
     },
+
+    getOptionRoleKey ({ roleID }) {
+      return roleID
+    },
+
+    getOptionUserKey ({ userID }) {
+      return userID
+    },
+
+    setDefaultValues () {
+      this.processing = false
+      this.backendComponentName = undefined
+      this.resource = undefined
+      this.title = undefined
+      this.target = undefined
+      this.allSpecific = false
+      this.userOptions = []
+      this.permissions = []
+      this.rules = []
+      this.roles = []
+      this.currentRole = undefined
+      this.evaluate = []
+      this.add = {}
+    },
+
+    destroyEvents() {
+      this.$root.$off(modalOpenEventName)
+    },
   },
 }
 </script>
@@ -580,18 +623,5 @@ export default {
   .rotate {
     color: #162425 !important;
   }
-}
-</style>
-
-<style lang="scss">
-#permissions-modal, #permissions-modal-eval {
-  .v-select {
-    min-width: 100%;
-
-    .vs__selected-options {
-      flex-wrap: wrap;
-    }
-  }
-
 }
 </style>

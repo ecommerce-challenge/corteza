@@ -76,24 +76,35 @@
         :processing="processing"
         :processing-submit="processingSubmit"
         :processing-delete="processingDelete"
-        :is-deleted="isDeleted"
+        :processing-undelete="processingUndelete"
         :in-editing="inEditing"
+        :record-navigation="recordNavigation"
+        :hide-back="false"
+        :hide-delete="false"
+        :hide-new="false"
+        :hide-clone="false"
+        :hide-edit="false"
+        :hide-submit="false"
         @add="handleAdd()"
         @clone="handleClone()"
         @edit="handleEdit()"
+        @view="handleView()"
         @delete="handleDelete()"
+        @undelete="handleUndelete()"
         @back="handleBack()"
         @submit="handleFormSubmitSimple('admin.modules.record.view')"
+        @update-navigation="handleRedirectToPrevOrNext"
       />
     </portal>
   </div>
 </template>
 
 <script>
+import axios from 'axios'
+import { mapGetters } from 'vuex'
 import RecordToolbar from 'corteza-webapp-compose/src/components/Common/RecordToolbar'
-import users from 'corteza-webapp-compose/src/mixins/users'
 import record from 'corteza-webapp-compose/src/mixins/record'
-import { compose } from '@cortezaproject/corteza-js'
+import { compose, NoID } from '@cortezaproject/corteza-js'
 import RecordBase from 'corteza-webapp-compose/src/components/PageBlocks/RecordBase'
 import RecordEditor from 'corteza-webapp-compose/src/components/PageBlocks/RecordEditor'
 
@@ -113,27 +124,43 @@ export default {
   mixins: [
     // The record mixin contains all of the logic for creating/editing/deleting the record
     record,
-    users,
   ],
+
+  props: {
+    // If component was called (via router) with some pre-seed values
+    values: {
+      type: Object,
+      required: false,
+      default: () => ({}),
+    },
+  },
 
   data () {
     return {
       inEditing: false,
+      inCreating: false,
 
       blocks: [],
 
       bindParams: {
         page: new compose.Page(),
-        boundingRect: {},
         namespace: this.$attrs.namespace,
       },
+
+      abortableRequests: [],
     }
   },
 
   computed: {
+    ...mapGetters({
+      getNextAndPrevRecord: 'ui/getNextAndPrevRecord',
+    }),
+
     title () {
       const { name, handle } = this.module
-      return this.$t('allRecords.view.title', { name: name || handle, interpolation: { escapeValue: false } })
+      const titlePrefix = this.inCreating ? 'create' : this.inEditing ? 'edit' : 'view'
+
+      return this.$t(`allRecords.${titlePrefix}.title`, { name: name || handle, interpolation: { escapeValue: false } })
     },
 
     module () {
@@ -152,11 +179,10 @@ export default {
 
       const fields = []
       const fieldSetSize = 8
-      const moduleFields = this.module.fields.slice().sort((a, b) => a.label.localeCompare(b.label))
 
       let i, j
-      for (i = 0, j = moduleFields.length; i < j; i += fieldSetSize) {
-        fields.push(moduleFields.slice(i, i + fieldSetSize))
+      for (i = 0, j = this.module.fields.length; i < j; i += fieldSetSize) {
+        fields.push(this.module.fields.slice(i, i + fieldSetSize))
       }
 
       fields.push(this.module.systemFields())
@@ -187,6 +213,11 @@ export default {
 
       return undefined
     },
+
+    recordNavigation () {
+      const { recordID } = this.record || {}
+      return this.getNextAndPrevRecord(recordID)
+    },
   },
 
   watch: {
@@ -200,33 +231,52 @@ export default {
 
   created () {
     this.createBlocks()
+    this.record = new compose.Record(this.module, { values: this.values })
+  },
+
+  beforeDestroy () {
+    this.abortRequests()
+    this.setDefaultValues()
   },
 
   methods: {
     createBlocks () {
       this.fields.forEach(f => {
-        const block = new compose.PageBlockRecord()
         const options = {
           moduleID: this.$attrs.moduleID,
           fields: f,
         }
-        block.options = options
-        this.blocks.push(block)
+        this.blocks.push(new compose.PageBlockRecord({ options }))
       })
     },
 
     loadRecord () {
-      if (this.$attrs.recordID && this.$attrs.moduleID) {
+      const { moduleID = NoID, recordID = NoID } = this.$attrs
+
+      if (!moduleID || moduleID === NoID) return
+      const module = Object.freeze(this.getModuleByID(moduleID).clone())
+
+      if (recordID && recordID !== NoID) {
         const { namespaceID } = this.$attrs.namespace
-        const { moduleID, recordID } = this.$attrs
-        const module = Object.freeze(this.getModuleByID(moduleID).clone())
-        this.$ComposeAPI
-          .recordRead({ namespaceID, moduleID, recordID })
+
+        const { response, cancel } = this.$ComposeAPI
+          .recordReadCancellable({ namespaceID, moduleID, recordID })
+
+        this.abortableRequests.push(cancel)
+
+        response()
           .then(record => {
             this.record = new compose.Record(module, record)
-            this.fetchUsers(this.module.fields, [this.record])
           })
-          .catch(this.toastErrorHandler(this.$t('notification:record.loadFailed')))
+          .catch((e) => {
+            if (!axios.isCancel(e)) {
+              this.toastErrorHandler(this.$t('notification:record.loadFailed'))(e)
+            }
+          })
+      } else {
+        this.record = new compose.Record(module, { values: this.values })
+        this.inEditing = true
+        this.inCreating = true
       }
     },
 
@@ -243,7 +293,34 @@ export default {
     },
 
     handleEdit () {
-      this.$router.push({ name: 'admin.modules.record.edit', params: this.$route.params })
+      this.inEditing = true
+      this.inCreating = false
+    },
+
+    handleView () {
+      this.inEditing = false
+      this.inCreating = false
+    },
+
+    handleRedirectToPrevOrNext (recordID) {
+      if (!recordID) return
+
+      this.$router.push({
+        params: { ...this.$route.params, recordID },
+      })
+    },
+
+    setDefaultValues () {
+      this.inEditing = false
+      this.blocks = []
+      this.bindParams = {}
+      this.abortableRequests = []
+    },
+
+    abortRequests () {
+      this.abortableRequests.forEach((cancel) => {
+        cancel()
+      })
     },
   },
 }

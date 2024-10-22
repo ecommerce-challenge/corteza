@@ -1,6 +1,6 @@
 <template>
   <div
-    class="overflow-auto"
+    class="overflow-auto py-3"
   >
     <b-list-group
       v-for="(grp, g) in navigation"
@@ -22,6 +22,7 @@
     </b-list-group>
   </div>
 </template>
+
 <script>
 import { mapGetters } from 'vuex'
 import { components } from '@cortezaproject/corteza-vue'

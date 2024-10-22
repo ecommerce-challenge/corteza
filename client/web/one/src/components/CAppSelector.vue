@@ -78,6 +78,7 @@
                   :data-test-id="app.name"
                   :disabled="!app.enabled"
                   :href="app.unify.url"
+                  :target="openAppInNewTab(app.unify.url)"
                   :style="[{ cursor: `${app.enabled ? 'pointer': canCreateApplication ? 'grab' : 'default'}` }]"
                   class="stretched-link"
                 />
@@ -275,13 +276,17 @@ export default {
       // Provisioned app logos
       return app.unify.logo
     },
+
+    openAppInNewTab (route) {
+      return !route.includes('jitsi') ? '' : '_blank'
+    },
   },
 }
 </script>
 <style lang="scss" scoped>
 .app-selector {
   .logo {
-    max-height: 25vh;
+    max-height: 20vh;
     max-width: 500px;
     width: auto;
   }

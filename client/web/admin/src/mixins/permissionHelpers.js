@@ -66,9 +66,10 @@ export default {
         .then(({ set }) => {
           this.allRoles = set
           this.rolePermissions = []
+          const roleIDs = this.allRoles.map(({ roleID }) => roleID)
 
           // We read permissions for included roles
-          return Promise.all(getIncludedRoles().map(({ mode, name, roleID, userID }) => {
+          return Promise.all(getIncludedRoles().filter(({ roleID, mode }) => mode === 'eval' || roleIDs.includes(roleID)).map(({ mode, name, roleID, userID }) => {
             if (mode === 'edit') {
               return this.readPermissions({ name, roleID })
             } else {
@@ -148,6 +149,7 @@ export default {
 
         this.readPermissions({ roleID, name: [name] })
           .finally(() => {
+            setIncludedRoles(this.roles)
             this.loaded.roles = true
           })
       } else if (mode === 'eval') {
@@ -165,6 +167,7 @@ export default {
 
         this.evaluatePermissions({ name, roleID, userID })
           .finally(() => {
+            setIncludedRoles(this.roles)
             this.loaded.roles = true
           })
       }
@@ -194,9 +197,6 @@ export default {
           })
         })
         .catch(this.toastErrorHandler(this.$t('notification:permissions.role.error')))
-        .finally(() => {
-          setIncludedRoles(this.roles)
-        })
     },
 
     async evaluatePermissions ({ name, roleID, userID }) {
@@ -216,9 +216,6 @@ export default {
           })
         })
         .catch(this.toastErrorHandler(this.$t('notification:permissions.eval.error')))
-        .finally(() => {
-          setIncludedRoles(this.roles)
-        })
     },
 
     roleRules (rules, mode = 'edit') {

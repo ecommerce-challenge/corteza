@@ -31,7 +31,8 @@ type (
 	}
 
 	ApigwFilterFilter struct {
-		RouteID uint64 `json:"routeID,string"`
+		ApigwFilterID []string `json:"apigwFilterID"`
+		RouteID       uint64   `json:"routeID,string"`
 
 		Deleted  filter.State `json:"deleted"`
 		Disabled filter.State `json:"disabled"`

@@ -97,8 +97,8 @@ func (ctrl User) List(ctx context.Context, r *request.UserList) (interface{}, er
 		err error
 		set types.UserSet
 		f   = types.UserFilter{
-			UserID:    payload.ParseUint64s(r.UserID),
-			RoleID:    payload.ParseUint64s(r.RoleID),
+			UserID:    r.UserID,
+			RoleID:    r.RoleID,
 			Query:     r.Query,
 			Email:     r.Email,
 			Username:  r.Username,
@@ -147,16 +147,29 @@ func (ctrl User) Create(ctx context.Context, r *request.UserCreate) (interface{}
 
 func (ctrl User) Update(ctx context.Context, r *request.UserUpdate) (interface{}, error) {
 	user := &types.User{
-		ID:     r.UserID,
-		Email:  r.Email,
-		Name:   r.Name,
-		Handle: r.Handle,
-		Kind:   r.Kind,
-		Labels: r.Labels,
+		ID:        r.UserID,
+		Email:     r.Email,
+		Name:      r.Name,
+		Handle:    r.Handle,
+		Kind:      r.Kind,
+		Labels:    r.Labels,
+		UpdatedAt: r.UpdatedAt,
 	}
 
 	res, err := ctrl.user.Update(ctx, user)
 	return ctrl.makePayload(ctx, res, err)
+}
+
+func (ctrl User) ProfileAvatar(ctx context.Context, r *request.UserProfileAvatar) (interface{}, error) {
+	return api.OK(), ctrl.user.UploadAvatar(ctx, r.UserID, r.Upload)
+}
+
+func (ctrl User) ProfileAvatarInitial(ctx context.Context, r *request.UserProfileAvatarInitial) (interface{}, error) {
+	return api.OK(), ctrl.user.GenerateAvatar(ctx, r.UserID, r.AvatarBgColor, r.AvatarColor)
+}
+
+func (ctrl User) DeleteAvatar(ctx context.Context, r *request.UserDeleteAvatar) (interface{}, error) {
+	return api.OK(), ctrl.user.DeleteAvatar(ctx, r.UserID)
 }
 
 type (

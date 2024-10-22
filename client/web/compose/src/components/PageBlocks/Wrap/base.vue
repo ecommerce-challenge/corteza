@@ -1,5 +1,6 @@
 <script>
-import { compose } from '@cortezaproject/corteza-js'
+import { compose, NoID } from '@cortezaproject/corteza-js'
+
 export default {
   i18nOptions: {
     namespaces: 'block',
@@ -14,7 +15,19 @@ export default {
     scrollableBody: {
       type: Boolean,
       required: false,
-      default: () => true,
+      default: true,
+    },
+
+    cardClass: {
+      type: String,
+      required: false,
+      default: '',
+    },
+
+    magnified: {
+      type: Boolean,
+      required: false,
+      default: false,
     },
   },
 
@@ -27,8 +40,9 @@ export default {
       ]
     },
 
-    isBlockOpened () {
-      return this.block.blockID === this.$route.query.blockID
+    isBlockMagnified () {
+      const { magnifiedBlockID } = this.$route.query
+      return this.magnified && magnifiedBlockID === this.block.blockID
     },
 
     headerSet () {
@@ -58,6 +72,11 @@ export default {
         this.block.options.magnifyOption,
         this.block.options.showRefresh,
       ].some(c => !!c)
+    },
+
+    magnifyParams () {
+      const params = this.block.blockID === NoID ? { block: this.block } : { blockID: this.block.blockID }
+      return this.isBlockMagnified ? undefined : params
     },
   },
 }

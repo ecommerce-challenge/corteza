@@ -31,9 +31,10 @@ type (
 	}
 
 	ChartConfig struct {
-		Reports     []*ChartConfigReport `json:"reports,omitempty"`
-		ColorScheme string               `json:"colorScheme,omitempty"`
-		NoAnimation bool                 `json:"noAnimation,omitempty"`
+		Reports     []*ChartConfigReport   `json:"reports,omitempty"`
+		ColorScheme string                 `json:"colorScheme,omitempty"`
+		NoAnimation bool                   `json:"noAnimation,omitempty"`
+		Toolbox     map[string]interface{} `json:"toolbox,omitempty"`
 	}
 
 	ChartConfigReport struct {
@@ -53,7 +54,7 @@ type (
 
 	ChartFilter struct {
 		NamespaceID uint64   `json:"namespaceID,string"`
-		ChartID     []uint64 `json:"chartID"`
+		ChartID     []string `json:"chartID"`
 		Handle      string   `json:"handle"`
 		Name        string   `json:"name"`
 		Query       string   `json:"query"`
@@ -160,6 +161,28 @@ func (c Chart) encodeTranslations() (out locale.ResourceTranslationSet) {
 				Msg:      cast.ToString(step["label"]),
 			})
 		})
+	}
+
+	return
+}
+
+func (c *Chart) setValue(name string, pos uint, value any) (err error) {
+	pp := strings.Split(name, ".")
+
+	switch pp[0] {
+	case "Config":
+		if pp[1] == "Reports" {
+			return c.Config.Reports[cast.ToInt(pp[2])].setValue(pp[3], 0, value)
+		}
+	}
+
+	return
+}
+
+func (r *ChartConfigReport) setValue(name string, pos uint, value any) (err error) {
+	switch name {
+	case "moduleID", "ModuleID":
+		r.ModuleID = cast.ToUint64(value)
 	}
 
 	return

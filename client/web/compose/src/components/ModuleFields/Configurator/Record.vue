@@ -61,6 +61,7 @@
             path="kind.record.prefilterFootnote"
             tag="label"
           >
+            <code>${record.values.fieldName}</code>
             <code>${recordID}</code>
             <code>${ownerID}</code>
             <code>${userID}</code>
@@ -69,16 +70,28 @@
       </b-form-group>
     </template>
 
-    <b-form-group
-      v-if="field.isMulti"
-      :label="$t('kind.select.optionType.label')"
-    >
-      <b-form-radio-group
-        v-model="f.options.selectType"
-        :options="selectOptions"
-        stacked
-      />
-    </b-form-group>
+    <template v-if="field.isMulti">
+      <b-form-group
+        :label="$t('kind.select.optionType.label')"
+      >
+        <b-form-radio-group
+          v-model="f.options.selectType"
+          :options="selectOptions"
+          stacked
+          @change="updateIsUniqueMultiValue"
+        />
+      </b-form-group>
+
+      <b-form-group v-if="shouldAllowDuplicates">
+        <b-form-checkbox
+          v-model="f.options.isUniqueMultiValue"
+          :value="false"
+          :unchecked-value="true"
+        >
+          {{ $t('kind.select.allow-duplicates') }}
+        </b-form-checkbox>
+      </b-form-group>
+    </template>
   </div>
 </template>
 
@@ -96,11 +109,10 @@ export default {
 
   data () {
     return {
-      selected: null,
       selectOptions: [
-        { text: this.$t('kind.select.optionType.default'), value: 'default' },
+        { text: this.$t('kind.select.optionType.default'), value: 'default', allowDuplicates: true },
         { text: this.$t('kind.select.optionType.multiple'), value: 'multiple' },
-        { text: this.$t('kind.select.optionType.each'), value: 'each' },
+        { text: this.$t('kind.select.optionType.each'), value: 'each', allowDuplicates: true },
       ],
     }
   },
@@ -194,6 +206,13 @@ export default {
     labelFieldQueryOptions () {
       return this.labelFieldOptions.filter(({ name }) => name !== this.field.options.recordLabelField)
     },
+
+    shouldAllowDuplicates () {
+      if (!this.f.isMulti) return false
+
+      const { allowDuplicates } = this.selectOptions.find(({ value }) => value === this.f.options.selectType) || {}
+      return !!allowDuplicates
+    },
   },
 
   watch: {
@@ -201,6 +220,15 @@ export default {
       this.f.options.labelField = undefined
       this.f.options.queryFields = []
       this.f.options.selectType = 'default'
+    },
+  },
+
+  methods: {
+    updateIsUniqueMultiValue (value) {
+      const { allowDuplicates = false } = this.selectOptions.find(({ value: v }) => v === value) || {}
+      if (!allowDuplicates) {
+        this.f.options.isUniqueMultiValue = true
+      }
     },
   },
 }

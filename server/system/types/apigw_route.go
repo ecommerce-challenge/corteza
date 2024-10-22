@@ -34,9 +34,10 @@ type (
 	}
 
 	ApigwRouteFilter struct {
-		Route    string `json:"route"`
-		Endpoint string `json:"endpoint"`
-		Method   string `json:"method"`
+		ApigwRouteID []string `json:"apigwRouteID"`
+		Route        string   `json:"route"`
+		Endpoint     string   `json:"endpoint"`
+		Method       string   `json:"method"`
 
 		Deleted  filter.State `json:"deleted"`
 		Disabled filter.State `json:"disabled"`

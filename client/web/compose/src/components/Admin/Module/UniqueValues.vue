@@ -5,31 +5,65 @@
       :key="index"
     >
       <hr v-if="index">
-      <div>
-        <div class="d-flex justify-content-between align-items-center">
-          <h5 v-html="$t('uniqueValueConstraint', { index: index + 1, interpolation: { escapeValue: false } })" />
 
-          <div class="px-4">
-            <c-input-confirm
-              @confirmed="rules.splice(index, 1)"
+      <h5 class="d-flex align-items-center">
+        {{ $t('uniqueValueConstraint', { index: index + 1 }) }}
+        <c-input-confirm
+          class="ml-2"
+          @confirmed="rules.splice(index, 1)"
+        />
+      </h5>
+
+      <div class="d-flex align-items-center justify-content-between flex-wrap w-100">
+        <b-form-group>
+          <b-input-group>
+            <vue-select
+              v-model="rule.currentField"
+              :placeholder="$t('searchFields')"
+              :get-option-label="getOptionLabel"
+              :get-option-key="getOptionKey"
+              :options="filterFieldOptions(rule)"
+              :calculate-position="calculateDropdownPosition"
+              class="bg-white"
+              style="min-width: 300px;"
             />
-          </div>
-        </div>
-        <b-form-checkbox
-          v-model="rule.strict"
-          switch
-          class="mt-3"
+
+            <b-input-group-append>
+              <b-button
+                variant="primary"
+                class="px-4"
+                :disabled="!rule.currentField"
+                @click="updateRuleConstraint(rule)"
+              >
+                {{ $t("add") }}
+              </b-button>
+            </b-input-group-append>
+          </b-input-group>
+        </b-form-group>
+
+        <b-form-group
+          :label="$t('preventRecordsSave')"
+          label-class="text-primary ml-auto"
         >
-          {{ $t("preventRecordsSave") }}
-        </b-form-checkbox>
+          <c-input-checkbox
+            v-model="rule.strict"
+            switch
+            :labels="checkboxLabel"
+          />
+        </b-form-group>
       </div>
-      <div class="mt-3">
+
+      <div
+        v-if="rule.constraints && rule.constraints.length > 0"
+        class="rounded border border-light p-3"
+        style="background-color: #F9FAFB;"
+      >
         <b-table-simple
-          v-if="rule.constraints.length > 0"
           borderless
+          class="mb-0"
         >
           <thead>
-            <tr>
+            <tr class="text-primary">
               <th>
                 {{ $t("field") }}
               </th>
@@ -42,6 +76,7 @@
               <th style="width: 250px;">
                 {{ $t("multiValues") }}
               </th>
+              <th style="width: 150px;" />
             </tr>
           </thead>
           <tbody v-if="rule.constraints">
@@ -75,28 +110,6 @@
             </tr>
           </tbody>
         </b-table-simple>
-
-        <b-form-group>
-          <b-input-group>
-            <vue-select
-              v-model="rule.currentField"
-              :placeholder="$t('searchFields')"
-              :get-option-label="getOptionLabel"
-              :options="filterFieldOptions(rule)"
-              class="bg-white"
-            />
-
-            <b-input-group-append>
-              <b-button
-                variant="primary"
-                class="px-4"
-                @click="updateRuleConstraint(rule)"
-              >
-                {{ $t("add") }}
-              </b-button>
-            </b-input-group-append>
-          </b-input-group>
-        </b-form-group>
       </div>
     </div>
 
@@ -105,8 +118,8 @@
     <div class="d-flex justify-content-end">
       <b-button
         size="lg"
-        variant="link"
-        class="d-flex align-items-center text-decoration-none p-0 mt-3"
+        variant="outline-light"
+        class="d-flex align-items-center border-0 text-primary mt-3"
         @click="addNewConstraint"
       >
         <font-awesome-icon
@@ -140,15 +153,18 @@ export default {
     },
   },
 
+  data () {
+    return {
+      checkboxLabel: {
+        on: this.$t('general:label.yes'),
+        off: this.$t('general:label.no'),
+      },
+    }
+  },
+
   computed: {
     rules: {
       get () {
-        this.module.config.recordDeDup.rules.forEach(rule => {
-          if (rule.constraints === null) {
-            rule.constraints = []
-          }
-        })
-
         return this.module.config.recordDeDup.rules
       },
       set (value) {
@@ -183,6 +199,10 @@ export default {
     },
 
     updateRuleConstraint (rule) {
+      if (!rule.constraints) {
+        rule.constraints = []
+      }
+
       rule.constraints.push({
         attribute: rule.currentField.name,
         modifier: 'case-sensitive',
@@ -195,7 +215,7 @@ export default {
     },
 
     filterFieldOptions (rule) {
-      const selectedFields = rule.constraints.map(({ attribute }) => attribute)
+      const selectedFields = rule.constraints ? rule.constraints.map(({ attribute }) => attribute) : []
       return this.module.fields.filter(({ name }) => !selectedFields.includes(name))
     },
 
@@ -209,6 +229,10 @@ export default {
 
     getOptionLabel ({ kind, label, name }) {
       return label || name || kind
+    },
+
+    getOptionKey ({ fieldID }) {
+      return fieldID
     },
   },
 }

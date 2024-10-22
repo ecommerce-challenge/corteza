@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="h-100">
     <b-card
       class="shadow h-100"
       header-class="p-0"
@@ -22,8 +22,6 @@
           >
             <small>
               {{ $t('ui.click-on-cell-to-allow') }}
-              <br>
-              {{ $t('ui.alt-click-to-deny') }}
             </small>
           </b-col>
           <b-col
@@ -93,7 +91,7 @@
           :key="type"
         >
           <b-row
-            class="bg-light border-bottom text-primary"
+            class="bg-light border-bottom text-primary sticky-top"
             align-v="stretch"
             no-gutters
           >
@@ -226,11 +224,13 @@
           v-model="add.roleID"
           :data-test-id="`select-${add.mode}-roles`"
           :options="availableRoles"
+          :get-option-key="getOptionRoleKey"
           :multiple="add.mode === 'eval'"
           label="name"
           clearable
           :disabled="add.mode === 'eval' && !!add.userID"
           :placeholder="$t('ui.add.role.placeholder')"
+          :calculate-position="calculateDropdownPosition"
           class="bg-white"
         />
       </b-form-group>
@@ -246,11 +246,13 @@
           v-model="add.userID"
           :data-test-id="`select-${add.mode}-users`"
           :disabled="!!add.roleID.length"
+          :get-option-key="getOptionUserKey"
           :options="userOptions"
           :get-option-label="getUserLabel"
           label="name"
           clearable
           :placeholder="$t('ui.add.user.placeholder')"
+          :calculate-position="calculateDropdownPosition"
           class="bg-white"
           @search="searchUsers"
         />
@@ -425,18 +427,10 @@ export default {
         this.$set(this.permissionChanges.find(r => r.ID === ID).rules, key, access)
       }
 
-      if (event.altKey) {
-        if (access === 'deny') {
-          access = 'inherit'
-        } else {
-          access = 'deny'
-        }
+      if (access === 'allow') {
+        access = 'inherit'
       } else {
-        if (access === 'allow') {
-          access = 'inherit'
-        } else {
-          access = 'allow'
-        }
+        access = 'allow'
       }
 
       this.$set(this.rolePermissions.find(r => r.ID === ID).rules, key, access)
@@ -493,6 +487,14 @@ export default {
     onHideRole (role) {
       this.$emit('hide', role)
     },
+
+    getOptionRoleKey ({ roleID }) {
+      return roleID
+    },
+
+    getOptionUserKey ({ userID }) {
+      return userID
+    },
   },
 }
 </script>
@@ -504,7 +506,7 @@ export default {
   cursor: not-allowed;
 }
 .active-cell:hover {
-  background-color: #F3F3F5;
+  background-color: $gray-200;
 }
 .rotate {
   transform: rotate(45deg);
@@ -519,7 +521,7 @@ export default {
 <style lang="scss">
 .mode {
   .btn {
-    background-color: #E4E9EF;
+    background-color: $light;
     border: none;
   }
 

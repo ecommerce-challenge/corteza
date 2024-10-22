@@ -5,12 +5,10 @@ import (
 	"errors"
 	"time"
 
-	"github.com/cortezaproject/corteza/server/pkg/dal"
-	"github.com/cortezaproject/corteza/server/pkg/discovery"
-	"github.com/cortezaproject/corteza/server/pkg/valuestore"
-
 	automationService "github.com/cortezaproject/corteza/server/automation/service"
+	discoveryService "github.com/cortezaproject/corteza/server/discovery/service"
 	"github.com/cortezaproject/corteza/server/pkg/actionlog"
+	"github.com/cortezaproject/corteza/server/pkg/dal"
 	"github.com/cortezaproject/corteza/server/pkg/eventbus"
 	"github.com/cortezaproject/corteza/server/pkg/healthcheck"
 	"github.com/cortezaproject/corteza/server/pkg/id"
@@ -20,6 +18,7 @@ import (
 	"github.com/cortezaproject/corteza/server/pkg/objstore/plain"
 	"github.com/cortezaproject/corteza/server/pkg/options"
 	"github.com/cortezaproject/corteza/server/pkg/rbac"
+	"github.com/cortezaproject/corteza/server/pkg/valuestore"
 	"github.com/cortezaproject/corteza/server/store"
 	"github.com/cortezaproject/corteza/server/system/automation"
 	"github.com/cortezaproject/corteza/server/system/types"
@@ -32,14 +31,15 @@ type (
 	}
 
 	Config struct {
-		ActionLog options.ActionLogOpt
-		Discovery options.DiscoveryOpt
-		Storage   options.ObjectStoreOpt
-		DB        options.DBOpt
-		Template  options.TemplateOpt
-		Auth      options.AuthOpt
-		RBAC      options.RbacOpt
-		Limit     options.LimitOpt
+		ActionLog  options.ActionLogOpt
+		Discovery  options.DiscoveryOpt
+		Storage    options.ObjectStoreOpt
+		DB         options.DBOpt
+		Template   options.TemplateOpt
+		Auth       options.AuthOpt
+		RBAC       options.RbacOpt
+		Limit      options.LimitOpt
+		Attachment options.AttachmentOpt
 	}
 
 	eventDispatcher interface {
@@ -92,6 +92,7 @@ var (
 	DefaultReport              *report
 	DefaultDataPrivacy         *dataPrivacy
 	DefaultSMTPChecker         *smtpConfigurationChecker
+	DefaultExpression          *expression
 
 	DefaultStatistics *statistics
 
@@ -139,9 +140,9 @@ func Initialize(ctx context.Context, log *zap.Logger, s store.Storer, ws websock
 			l = zap.NewNop()
 		}
 
-		DefaultResourceActivityLog := discovery.Service(l, c.Discovery, DefaultStore, eventbus.Service())
-		err = DefaultResourceActivityLog.InitResourceActivityLog(ctx, []string{
-			//(types.User{}).RbacResource(), // @todo user?? suppose to be system:user
+		DefaultResourceActivity := discoveryService.ResourceActivity(l, c.Discovery, DefaultStore, eventbus.Service())
+		err = DefaultResourceActivity.InitResourceActivityLog(ctx, []string{
+			// (types.User{}).RbacResource(), // @todo user?? suppose to be system:user
 			"system:user",
 		})
 		if err != nil {
@@ -203,6 +204,7 @@ func Initialize(ctx context.Context, log *zap.Logger, s store.Storer, ws websock
 	DefaultAuthNotification = AuthNotification(CurrentSettings, DefaultRenderer, c.Auth)
 	DefaultAuth = Auth(AuthOptions{LimitUsers: c.Limit.SystemUsers})
 	DefaultAuthClient = AuthClient(DefaultStore, DefaultAccessControl, DefaultActionlog, eventbus.Service(), c.Auth)
+	DefaultAttachment = Attachment(DefaultObjectStore, c.Attachment, DefaultLogger)
 	DefaultUser = User(UserOptions{LimitUsers: c.Limit.SystemUsers})
 	DefaultCredentials = Credentials()
 	DefaultReport = Report(DefaultStore, DefaultAccessControl, DefaultActionlog, eventbus.Service())
@@ -211,13 +213,13 @@ func Initialize(ctx context.Context, log *zap.Logger, s store.Storer, ws websock
 	DefaultReminder = Reminder(ctx, DefaultLogger.Named("reminder"), ws)
 	DefaultSink = Sink()
 	DefaultStatistics = Statistics()
-	DefaultAttachment = Attachment(DefaultObjectStore)
 	DefaultQueue = Queue()
 	DefaultApigwRoute = Route()
 	DefaultApigwProfiler = Profiler()
 	DefaultApigwFilter = Filter()
 	DefaultDataPrivacy = DataPrivacy(DefaultStore, DefaultAccessControl, DefaultActionlog, eventbus.Service())
 	DefaultSMTPChecker = SmtpConfigurationChecker(CurrentSettings, DefaultRenderer, DefaultAccessControl, c.Auth)
+	DefaultExpression = Expression()
 
 	if err = initRoles(ctx, log.Named("rbac.roles"), c.RBAC, eventbus.Service(), rbac.Global()); err != nil {
 		return err

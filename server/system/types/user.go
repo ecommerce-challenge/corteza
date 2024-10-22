@@ -4,8 +4,9 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"fmt"
-	"github.com/cortezaproject/corteza/server/pkg/sql"
 	"time"
+
+	"github.com/cortezaproject/corteza/server/pkg/sql"
 
 	"github.com/cortezaproject/corteza/server/pkg/filter"
 )
@@ -37,8 +38,13 @@ type (
 	}
 
 	UserMeta struct {
-		// @todo remove, obsolete.
-		Avatar string `json:"avatar,omitempty"`
+		// User's profile avatar photo attachment ID
+		AvatarID   uint64 `json:"avatarID,string"`
+		AvatarKind string `json:"avatarKind,omitempty"`
+
+		// User's avatar initial text and background color
+		AvatarColor   string `json:"avatarColor,omitempty"`
+		AvatarBgColor string `json:"avatarBgColor,omitempty"`
 
 		PreferredLanguage string `json:"preferredLanguage"`
 
@@ -62,8 +68,8 @@ type (
 	}
 
 	UserFilter struct {
-		UserID   []uint64 `json:"userID,string"`
-		RoleID   []uint64 `json:"roleID,string"`
+		UserID   []string `json:"userID"`
+		RoleID   []string `json:"roleID"`
 		Query    string   `json:"query"`
 		Email    string   `json:"email"`
 		Username string   `json:"username"`

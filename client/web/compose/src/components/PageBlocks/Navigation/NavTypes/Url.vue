@@ -43,5 +43,24 @@ export default {
       ],
     }
   },
+
+  beforeDestroy () {
+    this.setDefaultValues()
+  },
+
+  methods: {
+    setDefaultValues () {
+      this.value = {}
+      this.openInType = []
+    },
+  },
 }
 </script>
+
+<style lang="scss" scoped>
+th,
+td {
+  padding-left: 15px;
+  padding-right: 15px;
+}
+</style>

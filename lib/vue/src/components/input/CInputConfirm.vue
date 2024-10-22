@@ -1,6 +1,9 @@
 <template>
-  <span class="text-center">
-    <span v-if="!inConfirmation">
+  <div
+    :class="{ 'text-center': inConfirmation }"
+    class="d-inline-block"
+  >
+    <template v-if="!inConfirmation">
       <b-button
         data-test-id="button-delete"
         :variant="variant"
@@ -17,8 +20,8 @@
         </slot>
       </b-button>
 
-    </span>
-    <span v-else>
+    </template>
+    <template v-else>
       <b-button
         data-test-id="button-delete-confirm"
         :variant="variantOk"
@@ -48,8 +51,8 @@
             :icon="['fas', 'times']"
           /></slot>
       </b-button>
-    </span>
-  </span>
+    </template>
+  </div>
 </template>
 <script lang="js">
 export default {
@@ -81,7 +84,7 @@ export default {
     },
     variantCancel: {
       type: String,
-      default: undefined,
+      default: 'light',
     },
     sizeConfirm: {
       type: String,

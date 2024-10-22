@@ -60,6 +60,9 @@ export default {
   },
 
   created () {
+    // Preload first 500 users
+    this.$store.dispatch('user/load', { limit: 500 })
+
     this.$store.dispatch('namespace/load', { force: true }).then(namespaces => {
       this.namespaces = namespaces
       this.loaded = true
@@ -68,6 +71,19 @@ export default {
     this.$root.$on('reminders.show', () => {
       this.remindersVisible = true
     })
+  },
+
+  beforeDestroy () {
+    this.setDefaultValues()
+  },
+
+  methods: {
+    setDefaultValues () {
+      this.loaded = false
+      this.query = ''
+      this.namespaces = []
+      this.remindersVisible = false
+    },
   },
 }
 </script>

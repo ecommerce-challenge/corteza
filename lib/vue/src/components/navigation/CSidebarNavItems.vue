@@ -7,31 +7,43 @@
       class="w-100 text-dark text-decoration-none p-0 pt-2 nav-item"
       active-class="nav-active"
       exact-active-class="nav-active"
+      :title="page.title"
       :to="{ name: page.name || defaultRouteName, params }"
     >
       <span
         class="d-inline-block w-75 text-nowrap text-truncate"
         @click="closeSidebar()"
       >
-        <font-awesome-icon
+        <template
           v-if="page.icon"
-          class="icon"
-          :icon="page.icon"
-        />
-        <span
-          class="title"
+        >
+          <font-awesome-icon
+            v-if="Array.isArray(page.icon)"
+            class="icon"
+            :icon="page.icon"
+          />
+          <template v-else>
+            <img
+              :src="page.icon"
+              class="mr-1"
+              style="height: 1.5em; width: 1.5em;"
+            />
+          </template>
+        </template>
+        <label
+          class="title mb-0 pointer"
         >
           {{ page.title }}
-        </span>
+        </label>
       </span>
 
       <template
         v-if="children.length"
       >
         <b-button
-          variant="link"
-          class="p-0 float-right"
-          :disabled="showChildren({ params, children })"
+          variant="outline-light"
+          size="sm"
+          class="text-primary p-0 border-0 float-right mr-1"
           @click.self.stop.prevent="toggle(page)"
         >
           <font-awesome-icon
@@ -47,7 +59,7 @@
         </b-button>
 
         <b-collapse
-          :visible="collapses[pageIndex(page)] || showChildren({ params, children })"
+          :visible="collapses[pageIndex(page)]"
           @click.stop.prevent
         >
           <c-sidebar-nav-items
@@ -99,12 +111,10 @@ export default {
     items: {
       immediate: true,
       handler (items = []) {
-        items.forEach(({ page }) => {
+        items.forEach(({ page, params, children }) => {
           const px = this.pageIndex(page)
           // Apply startExpanded only if page isn't currently expanded
-          if (!this.collapses[px]) {
-            this.$set(this.collapses, px, this.startExpanded)
-          }
+          this.$set(this.collapses, px, this.startExpanded || page.expanded || this.showChildren({ params, children }))
         })
       },
     },
@@ -126,7 +136,7 @@ export default {
       this.$set(this.collapses, px, !this.collapses[px])
     },
 
-    // Recursively check for child pages that are open, so that parents can open aswell
+    // Recursively check for child pages that are open, so that parents can open as well
     showChildren ({ params = {}, children = [] }) {
       const partialParamsMatch = Object.entries(params).some(([key, value]) => {
         return this.$route.params[key] === value
@@ -152,19 +162,28 @@ export default {
   width: 30px;
 }
 
-.nav-item > span > {
+.nav-item > span {
   .title {
-    font-family: 'Poppins-Regular'
+    color: var(--tertiary);
+  }
+}
+
+.nav-item:hover > span {
+  .title {
+    color: var(--primary);
+    transition: color 0.25s;
   }
 }
 
 .nav-active > span > {
   .icon {
-    color: #4D7281;
+    color: var(--primary)
   }
 
   .title {
-    font-family: 'Poppins-SemiBold'
+    font-family: 'Poppins-SemiBold';
+    color: var(--primary);
+    transition: color 0.5s
   }
 }
 

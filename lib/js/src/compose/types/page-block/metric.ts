@@ -6,6 +6,11 @@ const kind = 'Metric'
 
 type Reporter = (p: ReporterParams) => Promise<any>
 
+interface DrillDown {
+  enabled: boolean;
+  blockID?: string;
+}
+
 interface ReporterParams {
   moduleID: string;
   filter?: string;
@@ -36,18 +41,21 @@ interface Metric {
   // @todo allow conditional styles; eg. if value is < 10 render with bold red text
   labelStyle?: Style;
   valueStyle?: Style;
+  drillDown: DrillDown;
 }
 
 interface Options {
   metrics: Array<Metric>;
   refreshRate: number;
   showRefresh: boolean;
+  magnifyOption: string;
 }
 
 const defaults: Readonly<Options> = Object.freeze({
   metrics: [],
   refreshRate: 0,
   showRefresh: false,
+  magnifyOption: '',
 })
 
 export class PageBlockMetric extends PageBlock {
@@ -64,8 +72,12 @@ export class PageBlockMetric extends PageBlock {
     if (!o) return
     Apply(this.options, o, Number, 'refreshRate')
     Apply(this.options, o, Boolean, 'showRefresh')
+    Apply(this.options, o, String, 'magnifyOption')
     if (o.metrics) {
-      this.options.metrics = o.metrics
+      this.options.metrics = o.metrics.map((m) => ({
+        ...m,
+        drillDown: m.drillDown || { enabled: false },
+      }))
     }
   }
 
@@ -108,7 +120,8 @@ export class PageBlockMetric extends PageBlock {
       moduleID,
       filter,
       metrics,
-      dimensions: dimensionFunctions.convert({ modifier: 'YEAR', field: 'createdAt' }),
+      // Since metric produces one value we want one dataset, deletedAt is the same for all existing records
+      dimensions: 'deletedAt',
     }
   }
 }

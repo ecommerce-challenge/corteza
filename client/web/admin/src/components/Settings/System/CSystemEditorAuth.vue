@@ -43,6 +43,13 @@
         >
           {{ $t('internal.signup.enabled') }}
         </b-form-checkbox>
+        <b-form-checkbox
+          v-model="settings['auth.internal.profile-avatar.enabled']"
+          :value="true"
+          :unchecked-value="false"
+        >
+          {{ $t('internal.profile-avatar.enabled') }}
+        </b-form-checkbox>
       </b-form-group>
       <b-form-group
         label-cols="2"
@@ -231,6 +238,38 @@
       >
         <b-input-group>
           <b-form-input v-model="settings['auth.mail.from-name']" />
+        </b-input-group>
+      </b-form-group>
+
+      <hr>
+
+      <h5>
+        {{ $t('internal.send-user-invite-email.title') }}
+      </h5>
+
+      <b-form-group
+        label-cols="2"
+        :description="$t('internal.send-user-invite-email.description')"
+      >
+        <b-form-checkbox
+          v-model="settings['auth.internal.send-user-invite-email.enabled']"
+          :value="true"
+          :unchecked-value="false"
+        >
+          {{ $t('internal.send-user-invite-email.enabled') }}
+        </b-form-checkbox>
+      </b-form-group>
+      <b-form-group
+        :label="$t('internal.send-user-invite-email.expires.label')"
+        :description="$t('internal.send-user-invite-email.expires.description')"
+        label-cols="2"
+      >
+        <b-input-group append="hours">
+          <b-form-input
+            v-model="settings['auth.internal.send-user-invite-email.expires']"
+            type="number"
+            placeholder="72"
+          />
         </b-input-group>
       </b-form-group>
     </b-form>

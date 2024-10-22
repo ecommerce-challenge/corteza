@@ -5,10 +5,12 @@
         v-if="reports.length"
         class="h-100"
       >
-        <c-input-search
-          v-model.trim="query"
-          :placeholder="$t('sidebar:search-reports')"
-        />
+        <div class="bg-white sticky-top py-2">
+          <c-input-search
+            v-model.trim="query"
+            :placeholder="$t('sidebar:search-reports')"
+          />
+        </div>
 
         <c-sidebar-nav-items
           :items="filteredReports"
@@ -51,7 +53,7 @@ export default {
       let reports = this.reports
       if (this.query) {
         reports = this.reports.filter(({ reportID, handle, meta: { name = '' } }) => {
-          const reportString = `${reportID}${handle}$name}`.toLowerCase().trim()
+          const reportString = `${reportID}${handle}${name}`.toLowerCase().trim()
           return reportString.indexOf(this.query.toLowerCase().trim()) > -1
         })
       }

@@ -21,6 +21,8 @@
           v-for="(v, i) in formatResponse(m, mi)"
           :key="i"
           class="w-100 h-100 px-2 py-1"
+          :class="m.drillDown.enabled ? 'pointer' : ''"
+          @click="drillDown(m, mi)"
         >
           <!-- <h3 :style="genStyle(m.labelStyle)">
             {{ v.label }}
@@ -39,8 +41,9 @@
 import base from './base'
 import numeral from 'numeral'
 import moment from 'moment'
+import { debounce } from 'lodash'
 import MetricItem from './Metric/Item'
-import { NoID } from '@cortezaproject/corteza-js'
+import { NoID, compose } from '@cortezaproject/corteza-js'
 import { evaluatePrefilter } from 'corteza-webapp-compose/src/lib/record-filter'
 
 export default {
@@ -63,6 +66,8 @@ export default {
     return {
       processing: false,
       reports: [],
+
+      abortableRequests: [],
     }
   },
 
@@ -73,16 +78,25 @@ export default {
         this.refresh()
       },
     },
+
+    options: {
+      deep: true,
+      handler: debounce(function () {
+        this.refresh()
+      }, 300),
+    },
   },
 
   mounted () {
     this.$root.$on('metric.update', this.refresh)
     this.$root.$on(`refetch-non-record-blocks:${this.page.pageID}`, this.refresh)
+    this.$root.$on('drill-down-chart', this.drillDown)
   },
 
   beforeDestroy () {
-    this.$root.$off('metric.update', this.refresh)
-    this.$root.$off(`refetch-non-record-blocks:${this.page.pageID}`)
+    this.abortRequests()
+    this.destroyEvents()
+    this.setDefaultValues()
   },
 
   created () {
@@ -124,7 +138,14 @@ export default {
       try {
         const rtr = []
         const namespaceID = this.namespace.namespaceID
-        const reporter = r => this.$ComposeAPI.recordReport({ ...r, namespaceID })
+        const reporter = r => {
+          const { response, cancel } = this.$ComposeAPI
+            .recordReportCancellable({ ...r, namespaceID })
+
+          this.abortableRequests.push(cancel)
+
+          return response()
+        }
 
         for (const m of this.options.metrics) {
           if (m.moduleID) {
@@ -150,7 +171,69 @@ export default {
         this.processing = false
       }
     },
+    /**
+     *
+     * @param {*} name
+     * Based on drill down configuration, either changes the linked block on the page
+     * or opens it in a modal wit the filter and dimensions from the chart and the clicked value
+     */
+    drillDown ({ label: name = '', filter, moduleID, drillDown }, metricIndex) {
+      if (!drillDown.enabled) {
+        return
+      }
 
+      if (drillDown.blockID) {
+        // Use linked record list to display drill down data
+        const { pageID = NoID } = this.page
+        const { recordID = NoID } = this.record || {}
+        // Construct its uniqueID to identify it
+        const recordListUniqueID = [pageID, recordID, drillDown.blockID, false].map(v => v || NoID).join('-')
+        this.$root.$emit(`drill-down-recordList:${recordListUniqueID}`, filter)
+      } else {
+        // Open in modal
+        const metricID = `${this.block.blockID}-${name.replace(/\s+/g, '-').toLowerCase()}-${moduleID}-${metricIndex}`
+
+        const block = new compose.PageBlockRecordList({
+          title: name,
+          blockID: `drillDown-${metricID}`,
+          options: {
+            moduleID,
+            prefilter: filter,
+            presort: 'createdAt DESC',
+            hideRecordReminderButton: true,
+            hideRecordViewButton: false,
+            hideConfigureFieldsButton: false,
+            hideImportButton: true,
+            enableRecordPageNavigation: true,
+            selectable: true,
+            allowExport: true,
+            perPage: 14,
+            showTotalCount: true,
+            recordDisplayOption: 'modal',
+          },
+        })
+
+        this.$root.$emit('magnify-page-block', { block })
+      }
+    },
+
+    setDefaultValues () {
+      this.processing = false
+      this.reports = []
+      this.abortableRequests = []
+    },
+
+    abortRequests () {
+      this.abortableRequests.forEach((cancel) => {
+        cancel()
+      })
+    },
+
+    destroyEvents () {
+      this.$root.$off('metric.update', this.refresh)
+      this.$root.$off(`refetch-non-record-blocks:${this.page.pageID}`, this.refresh)
+      this.$root.$off('drill-down-chart', this.drillDown)
+    },
   },
 }
 </script>

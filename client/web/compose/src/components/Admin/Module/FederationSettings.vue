@@ -12,7 +12,6 @@
     @change="$emit('change', $event)"
   >
     <b-tabs
-      active-nav-item-class="bg-grey"
       nav-wrapper-class="bg-white border-bottom"
       active-tab-class="tab-content h-auto overflow-auto"
       card
@@ -296,7 +295,6 @@ export default {
   },
 
   computed: {
-
     //
     // shared modules
     //
@@ -383,6 +381,10 @@ export default {
     this.preload()
   },
 
+  beforeDestroy () {
+    this.setDefaultValues()
+  },
+
   methods: {
     async preload () {
       await this.$FederationAPI.nodeSearch({ status: 'paired' })
@@ -416,7 +418,7 @@ export default {
         list[nodeID] = {}
 
         for (const sm of this.sharedModules[nodeID]) {
-          let f = sm.fields.sort((a, b) => a.label.localeCompare(b.label))
+          let f = [...sm.fields].sort((a, b) => a.label.localeCompare(b.label))
 
           // is there any mappings for this shared module?
           const mappedFields = ((this.moduleMappings[nodeID] || {})[sm.moduleID] || {}).fields || []
@@ -732,6 +734,19 @@ export default {
       }
 
       this.moduleMappings[nodeID] = mm
+    },
+
+    setDefaultValues () {
+      this.showModal = false
+      this.servers = []
+      this.moduleFields = []
+      this.sharedModule = null
+      this.sharedModules = {}
+      this.sharedModulesMapped = {}
+      this.exposedModules = {}
+      this.moduleMappings = {}
+      this.downstream = {}
+      this.upstream = {}
     },
   },
 }

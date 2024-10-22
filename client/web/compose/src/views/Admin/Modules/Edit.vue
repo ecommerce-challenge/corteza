@@ -7,6 +7,7 @@
     <portal to="topbar-tools">
       <b-button-group
         v-if="isEdit"
+        data-test-id="button-all-records"
         size="sm"
         class="mr-1"
       >
@@ -113,7 +114,7 @@
                         :title="module.name || module.handle || module.moduleID"
                         :target="module.name || module.handle || module.moduleID"
                         :resource="`corteza::compose:module/${namespace.namespaceID}/${module.moduleID}`"
-                        :button-label="$t('general:label.module')"
+                        :button-label="$t('general:label.module.single')"
                         :show-button-icon="false"
                         button-variant="white text-left w-100"
                       />
@@ -301,6 +302,7 @@
                           :is-duplicate="!!duplicateFields[index]"
                           @edit="handleFieldEdit(module.fields[index])"
                           @delete="module.fields.splice(index, 1)"
+                          @updateKind="handleFieldKindUpdate(index)"
                         />
                       </draggable>
 
@@ -406,6 +408,7 @@
         :visible="!!updateField"
         body-class="p-0 border-top-0"
         header-class="p-3 pb-0 border-bottom-0"
+        no-fade
         @ok="handleFieldSave(updateField)"
         @hide="updateField=null"
       >
@@ -436,7 +439,6 @@
     <portal to="admin-toolbar">
       <editor-toolbar
         :processing="processing"
-        :back-link="{ name: 'admin.modules' }"
         :hide-delete="hideDelete"
         hide-clone
         :hide-save="hideSave"
@@ -444,12 +446,14 @@
         @delete="handleDelete"
         @save="handleSave()"
         @saveAndClose="handleSave({ closeOnSuccess: true })"
+        @back="$router.push(previousPage || { name: 'admin.modules' })"
       />
     </portal>
   </div>
 </template>
 
 <script>
+import { isEqual } from 'lodash'
 import { mapGetters, mapActions } from 'vuex'
 import draggable from 'vuedraggable'
 import FieldConfigurator from 'corteza-webapp-compose/src/components/ModuleFields/Configurator'
@@ -514,6 +518,7 @@ export default {
 
       updateField: null,
       module: undefined,
+      initialModuleState: undefined,
       hasRecords: true,
       processing: false,
 
@@ -524,12 +529,15 @@ export default {
       discoverySettings: {
         modal: false,
       },
+
+      abortableRequests: [],
     }
   },
 
   computed: {
     ...mapGetters({
       pages: 'page/set',
+      previousPage: 'ui/previousPage',
     }),
 
     title () {
@@ -641,6 +649,7 @@ export default {
       immediate: true,
       handler (moduleID) {
         this.module = undefined
+        this.initialModuleState = undefined
 
         /**
          * Every time module changes we switch to the 1st tab
@@ -652,6 +661,7 @@ export default {
             { fields: [new compose.ModuleFieldString({ fieldID: NoID, name: this.$t('general.placeholder.sample') })] },
             this.namespace,
           )
+          this.initialModuleState = this.module.clone()
         } else {
           const params = {
             // make sure module is loaded from the API every time!
@@ -663,6 +673,7 @@ export default {
           this.findModuleByID(params).then((module) => {
             // Make a copy so that we do not change store item by ref
             this.module = module.clone()
+            this.initialModuleState = module.clone()
 
             const { moduleID, namespaceID, issues = [] } = this.module
 
@@ -673,8 +684,12 @@ export default {
             }
 
             // Count existing records to see what we can do with this module
-            this.$ComposeAPI
-              .recordList({ moduleID, namespaceID, limit: 1 })
+            const { response, cancel } = this.$ComposeAPI
+              .recordListCancellable({ moduleID, namespaceID, limit: 1 })
+
+            this.abortableRequests.push(cancel)
+
+            response()
               .then(({ set }) => { this.hasRecords = (set.length > 0) })
           })
         }
@@ -690,6 +705,19 @@ export default {
     },
   },
 
+  beforeDestroy () {
+    this.abortRequests()
+    this.setDefaultValues()
+  },
+
+  beforeRouteUpdate (to, from, next) {
+    this.checkUnsavedModule(next)
+  },
+
+  beforeRouteLeave (to, from, next) {
+    this.checkUnsavedModule(next)
+  },
+
   methods: {
     ...mapActions({
       findModuleByID: 'module/findByID',
@@ -700,12 +728,21 @@ export default {
       deletePage: 'page/delete',
     }),
 
+    checkUnsavedModule (next) {
+      next(!isEqual(this.module.clone(), this.initialModuleState.clone()) ? window.confirm(this.$t('general.unsavedChanges')) : true)
+    },
+
     handleNewField () {
       this.module.fields.push(new compose.ModuleFieldString())
     },
 
     handleFieldEdit (field) {
       this.updateField = compose.ModuleFieldMaker({ ...field })
+    },
+
+    handleFieldKindUpdate (index) {
+      const field = this.module.fields[index]
+      this.module.fields.splice(index, 1, compose.ModuleFieldMaker({ ...field }))
     },
 
     handleFieldSave (field) {
@@ -759,10 +796,11 @@ export default {
           }
 
           this.module = new compose.Module({ ...module }, this.namespace)
+          this.initialModuleState = this.module.clone()
 
-          this.toastSuccess(this.$t('notification:module.saved'))
+          this.toastSuccess(this.$t('notification:module.created'))
           if (closeOnSuccess) {
-            this.$router.push({ name: 'admin.modules' })
+            this.$router.push(this.previousPage || { name: 'admin.modules' })
           } else {
             this.$router.push({ name: 'admin.modules.edit', params: { moduleID: this.module.moduleID } })
           }
@@ -773,6 +811,8 @@ export default {
       } else {
         this.updateModule({ ...this.module, resourceTranslationLanguage }).then(module => {
           this.module = new compose.Module({ ...module }, this.namespace)
+          this.initialModuleState = this.module.clone()
+
           this.toastSuccess(this.$t('notification:module.saved'))
           if (closeOnSuccess) {
             this.$router.push({ name: 'admin.modules' })
@@ -805,6 +845,7 @@ export default {
         this.$SystemAPI.dalConnectionRead({ connectionID })
           .then(connection => {
             this.connection = connection
+            this.initialModuleState.config.dal.connectionID = connection.connectionID
           })
           .catch(this.toastErrorHandler(this.$t('notification:connection.read-failed')))
           .finally(() => {
@@ -825,14 +866,26 @@ export default {
           this.processing = false
         })
     },
+
+    setDefaultValues () {
+      this.activeTab = 0
+      this.connection = undefined
+      this.sensitivityLevels = []
+      this.updateField = null
+      this.module = undefined
+      this.initialModuleState = undefined
+      this.hasRecords = true
+      this.processing = false
+      this.federationSettings = {}
+      this.discoverySettings = {}
+      this.abortableRequests = []
+    },
+
+    abortRequests () {
+      this.abortableRequests.forEach((cancel) => {
+        cancel()
+      })
+    },
   },
 }
 </script>
-
-<style lang="scss">
-.permissions-dropdown {
-  .dropdown-item {
-    padding: 0;
-  }
-}
-</style>

@@ -4,6 +4,7 @@ import {
   Report,
   Dimension,
   ChartType,
+  TemporalDataPoint,
 } from './util'
 import { getColorschemeColors } from '../../../shared'
 
@@ -14,6 +15,9 @@ export default class GaugeChart extends BaseChart {
     // Assure required fields
     for (const v of (this.config.reports || []) as Array<Report>) {
       for (const d of (v.dimensions || []) as Array<Dimension>) {
+        // Since gauge produces one value we want one dataset, deletedAt is the same for all existing records
+        d.field = 'deletedAt'
+
         if (!d.meta) {
           d.meta = {}
         }
@@ -36,12 +40,14 @@ export default class GaugeChart extends BaseChart {
     return (d.meta?.steps || []).map(({ label }: any) => label)
   }
 
-  makeDataset (m: Metric, d: Dimension, data: Array<number|any>, alias: string) {
+  makeDataset (m: Metric, d: Dimension, data: Array<number|TemporalDataPoint>, alias: string) {
     const steps = (d.meta?.steps || [])
 
-    const value = data.reduce((acc, cur) => {
+    data = this.datasetPostProc(data, m)
+
+    const value = data.reduce((acc: any, cur: any) => {
       return !isNaN(cur) ? acc + parseFloat(cur) : acc
-    }, 0)
+    }, 0).toFixed(3)
 
     const max = Math.max(...steps.map(({ value }: any) => parseFloat(value)))
 
@@ -59,6 +65,8 @@ export default class GaugeChart extends BaseChart {
       name,
       max,
       value,
+      startAngle: m.startAngle,
+      endAngle: m.endAngle,
       tooltip: {
         fixed: m.fixTooltips,
       },
@@ -66,9 +74,11 @@ export default class GaugeChart extends BaseChart {
   }
 
   makeOptions (data: any) {
-    const { colorScheme, noAnimation = false } = this.config
+    const { colorScheme, noAnimation = false, toolbox } = this.config
+    const { saveAsImage } = toolbox || {}
+
     const { datasets = [] } = data
-    const { steps = [], name, value, max, tooltip } = datasets.find(({ value }: any) => value) || datasets[0]
+    const { steps = [], name, value, max, tooltip, startAngle, endAngle } = datasets.find(({ value }: any) => value) || datasets[0]
     const colors = getColorschemeColors(colorScheme)
 
     const color = steps.map((s: any, i: number) => {
@@ -80,19 +90,28 @@ export default class GaugeChart extends BaseChart {
       textStyle: {
         fontFamily: 'Poppins-Regular',
       },
+      toolbox: {
+        feature: {
+          saveAsImage: saveAsImage ? {
+            name: this.name
+          } : undefined,
+        },
+        top: 15,
+        right: 5,
+      },
       grid: {
         bottom: 0,
       },
       series: [
         {
           type: 'gauge',
-          startAngle: 200,
-          endAngle: -20,
+          startAngle,
+          endAngle,
           min: 0,
           max,
           splitNumber: 5,
           radius: '100%',
-          center: ['50%', '60%'],
+          center: ['50%', '50%'],
           pointer: {
             width: 5,
             length: '75%',
@@ -104,7 +123,7 @@ export default class GaugeChart extends BaseChart {
             distance: 0,
             length: 0,
             lineStyle: {
-              color: '#fff',
+              color: '#FFFFFF',
             },
           },
           axisLine: {
@@ -147,7 +166,11 @@ export default class GaugeChart extends BaseChart {
   }
 
   defMetrics (): Metric {
-    return Object.assign({}, { type: ChartType.gauge })
+    return Object.assign({}, {
+      type: ChartType.gauge,
+      startAngle: 200,
+      endAngle: -20
+    })
   }
 
   /**

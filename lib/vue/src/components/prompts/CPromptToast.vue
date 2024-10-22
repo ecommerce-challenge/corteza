@@ -151,6 +151,15 @@ export default {
     },
   },
 
+  mounted () {
+    this.setDocumentFocusObserver()
+  },
+
+  beforeDestroy () {
+    this.clearDocumentFocusObserver()
+    this.setDefaultValues()
+  },
+
   methods: {
     ...mapActions({
       resume: 'wfPrompts/resume',
@@ -187,19 +196,18 @@ export default {
         if (this.hasFocus !== f) {
           this.hasFocus = f
         }
-      }, 250)
-    }
-  },
+      }, 1000)
+    },
 
-  mounted () {
-    this.setDocumentFocusObserver()
-  },
-
-  beforeDestroy () {
-    this.clearDocumentFocusObserver()
+    setDefaultValues () {
+      this.passive.clear()
+      this.hasFocus = null
+      this.hasFocusObserver = 0
+    },
   },
 }
 </script>
+
 <style scoped lang="scss">
 .slide-enter-active {
   transition: all .3s ease;

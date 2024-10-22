@@ -97,9 +97,9 @@ type (
 	// ........................................................................
 
 	DalConnectionFilter struct {
-		ConnectionID []uint64 `json:"connectionID,string"`
-		Handle       string   `json:"handle"`
-		Type         string   `json:"type"`
+		DalConnectionID []string `json:"connectionID"`
+		Handle          string   `json:"handle"`
+		Type            string   `json:"type"`
 
 		Deleted filter.State `json:"deleted"`
 

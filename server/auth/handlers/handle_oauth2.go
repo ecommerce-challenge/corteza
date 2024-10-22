@@ -22,6 +22,7 @@ import (
 	"github.com/cortezaproject/corteza/server/auth/request"
 	"github.com/cortezaproject/corteza/server/pkg/auth"
 	"github.com/cortezaproject/corteza/server/pkg/errors"
+	"github.com/cortezaproject/corteza/server/pkg/logger"
 	"github.com/cortezaproject/corteza/server/pkg/payload"
 	systemService "github.com/cortezaproject/corteza/server/system/service"
 	"github.com/cortezaproject/corteza/server/system/types"
@@ -88,7 +89,7 @@ func (h AuthHandlers) oauth2AuthorizeClient(req *request.AuthReq) (err error) {
 	}
 
 	if !h.canAuthorizeClient(req.Context(), req.Client) {
-		h.Log.Error("user's roles do not allow authorization of this client", zap.Uint64("ID", req.Client.ID), zap.String("handle", req.Client.Handle))
+		h.Log.Error("user's roles do not allow authorization of this client", logger.Uint64("ID", req.Client.ID), zap.String("handle", req.Client.Handle))
 		request.SetOauth2Client(req.Session, nil)
 		request.SetOauth2AuthParams(req.Session, nil)
 		req.RedirectTo = GetLinks().Profile
@@ -225,6 +226,7 @@ func (h AuthHandlers) oauth2Info(w http.ResponseWriter, r *http.Request) {
 // Responsibilities:
 //   - handles parameterless request to initialize authorization code flow
 //   - accepts redirect_uri via query string that's used to build the oauth2 authorization URL
+//
 // (for the rest of the flow, see oauth2authorizeDefaultClientProc)
 func (h AuthHandlers) oauth2authorizeDefaultClient(req *request.AuthReq) (err error) {
 	if err = h.verifyDefaultClient(); err != nil {
@@ -260,6 +262,7 @@ func (h AuthHandlers) oauth2authorizeDefaultClient(req *request.AuthReq) (err er
 // Responsibilities:
 //   - handles exchange of authorization-code for token
 //   - handles issuing of new access token requests
+//
 // (for the first part of the flow, see oauth2authorizeDefaultClient)
 func (h AuthHandlers) oauth2authorizeDefaultClientProc(req *request.AuthReq) (err error) {
 	if err = h.verifyDefaultClient(); err != nil {
@@ -326,7 +329,7 @@ func (h AuthHandlers) loadRequestedClient(req *request.AuthReq) (client *types.A
 			return fmt.Errorf("invalid client: %w", err)
 		}
 
-		h.Log.Debug("client loaded from store", zap.Uint64("ID", client.ID))
+		h.Log.Debug("client loaded from store", logger.Uint64("ID", client.ID))
 		return
 	}()
 }
@@ -437,6 +440,11 @@ func (h AuthHandlers) handleTokenRequest(req *request.AuthReq, client *types.Aut
 
 	response := h.OAuth2.GetTokenData(ti)
 
+	// include user's avatarID
+	if user.Meta.AvatarID != 0 {
+		response["avatarID"] = strconv.FormatUint(user.Meta.AvatarID, 10)
+	}
+
 	// in case client is configured with "openid" scope,
 	// we'll add "id_token" with all required (by OIDC) details encoded
 	if strings.Contains(client.Scope, "openid") {
@@ -495,8 +503,9 @@ func (h AuthHandlers) oauth2PublicKeys(w http.ResponseWriter, r *http.Request) {
 func SubSplit(ti oauth2def.TokenInfo, data map[string]interface{}) {
 	userIdWithRoles := strings.SplitN(ti.GetUserID(), " ", 2)
 	data["sub"] = userIdWithRoles[0]
+
 	if len(userIdWithRoles) > 1 {
-		data["roles"] = userIdWithRoles[1]
+		data["roles"] = strings.Split(userIdWithRoles[1], " ")
 	}
 }
 

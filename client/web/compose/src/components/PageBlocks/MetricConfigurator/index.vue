@@ -40,6 +40,8 @@
         </b-col>
       </b-row>
 
+      <hr>
+
       <b-row
         class="mt-3"
       >
@@ -159,6 +161,7 @@
                     path="metric.edit.filterFootnote"
                     tag="label"
                   >
+                    <code>${record.values.fieldName}</code>
                     <code>${recordID}</code>
                     <code>${ownerID}</code>
                     <code>${userID}</code>
@@ -179,8 +182,11 @@
                   v-model="edit.metricField"
                   :placeholder="$t('metric.edit.metricFieldSelect')"
                   :options="metricFields"
+                  :get-option-key="getOptionMetricFieldKey"
                   :reduce="f => f.name"
+                  :calculate-position="calculateDropdownPosition"
                   class="bg-white"
+                  @input="onMetricFieldChange"
                 />
               </b-form-group>
 
@@ -192,7 +198,9 @@
                   :disabled="edit.metricField === 'count'"
                   :placeholder="$t('metric.edit.metricSelectAggregate')"
                   :options="aggregationOperations"
+                  :get-option-key="getOptionAggregationOperationKey"
                   :reduce="a => a.operation"
+                  :calculate-position="calculateDropdownPosition"
                   class="bg-white"
                 />
               </b-form-group>
@@ -238,6 +246,33 @@
                   class="mb-1"
                 />
               </b-form-group>
+
+              <b-form-group
+                :description="$t('metric.drillDown.description')"
+                label-class="d-flex align-items-center"
+                class="mb-1"
+              >
+                <template #label>
+                  {{ $t('metric.drillDown.label') }}
+                  <b-form-checkbox
+                    v-model="edit.drillDown.enabled"
+                    switch
+                    class="ml-1"
+                  />
+                </template>
+
+                <vue-select
+                  v-model="edit.drillDown.blockID"
+                  :options="drillDownOptions"
+                  :disabled="!edit.drillDown.enabled"
+                  :get-option-label="o => o.title || o.kind"
+                  :reduce="option => option.blockID"
+                  :clearable="true"
+                  :placeholder="$t('metric.drillDown.openInModal')"
+                  append-to-body
+                  class="block-selector bg-white w-100"
+                />
+              </b-form-group>
             </fieldset>
           </b-card>
 
@@ -266,10 +301,13 @@
             style="top: 0;"
           >
             <b-button
-              variant="outline-primary"
+              :title="$t('metric.edit.refreshData')"
+              variant="outline-light"
+              size="lg"
+              class="d-flex align-items-center text-primary ml-auto border-0 px-2 mt-2 mr-2"
               @click.prevent="$root.$emit('metric.update')"
             >
-              {{ $t('metric.edit.refreshData') }}
+              <font-awesome-icon :icon="['fa', 'sync']" />
             </b-button>
 
             <div
@@ -293,7 +331,7 @@ import MStyle from './MStyle'
 import { mapGetters } from 'vuex'
 import MetricBase from '../MetricBase'
 import { VueSelect } from 'vue-select'
-import { compose } from '@cortezaproject/corteza-js'
+import { compose, NoID } from '@cortezaproject/corteza-js'
 
 export default {
   i18nOptions: {
@@ -363,6 +401,10 @@ export default {
         this.options.metrics = m
       },
     },
+
+    drillDownOptions () {
+      return this.page.blocks.filter(({ blockID, kind, options = {} }) => kind === 'RecordList' && blockID !== NoID && options.moduleID === this.edit.moduleID)
+    },
   },
 
   watch: {
@@ -372,11 +414,6 @@ export default {
         this.edit.dateFormat = undefined
       } else {
         this.edit.dateFormat = this.edit.dateFormat || 'YYYY-MM-DD'
-      }
-    },
-    'edit.metricField': function (mf) {
-      if (mf === 'count') {
-        this.edit.operation = undefined
       }
     },
   },
@@ -389,12 +426,21 @@ export default {
     this.edit = this.metrics[0]
   },
 
+  beforeDestroy () {
+    this.setDefaultValues()
+  },
+
   methods: {
     addMetric () {
       const m = {
         labelStyle: {},
         valueStyle: {
-          backgroundColor: '#ffffff',
+          backgroundColor: '#FFFFFF00',
+          color: '#000000',
+        },
+        drillDown: {
+          enabled: false,
+          blockID: '',
         },
       }
       this.metrics.push(m)
@@ -412,6 +458,28 @@ export default {
 
     isTemporalField (name) {
       return !!this.fields.find(f => f.name === name && f.kind === 'DateTime')
+    },
+
+    getOptionMetricFieldKey ({ name }) {
+      return name
+    },
+
+    getOptionAggregationOperationKey ({ operation }) {
+      return operation
+    },
+
+    onMetricFieldChange (field) {
+      if (field === 'count') {
+        this.edit.operation = undefined
+      } else if (!this.edit.operation) {
+        this.edit.operation = this.aggregationOperations[0].operation
+      }
+    },
+
+    setDefaultValues () {
+      this.edit = undefined
+      this.dimensionModifiers = []
+      this.aggregationOperations = []
     },
   },
 }

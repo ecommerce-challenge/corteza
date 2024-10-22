@@ -1,8 +1,8 @@
 :root {
   --primary: #0B344E;
   --primary-hover: #061E2C;
-  --light: #E4E9EF;
-  --danger: #E24646;
+  --light: #F3F5F7;
+  --danger: #E54122;
 }
 
 html {
@@ -111,6 +111,10 @@ a:hover {
 .form-control {
   border: 2px solid var(--light);
   padding: 1.25rem 0.75rem;
+}
+
+.input-color {
+  padding: 0.125rem 0.25rem;
 }
 
 select.form-control {

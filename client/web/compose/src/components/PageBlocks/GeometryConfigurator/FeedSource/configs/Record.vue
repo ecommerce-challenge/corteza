@@ -28,16 +28,21 @@
           horizontal
           :label-cols="3"
           breakpoint="md"
-          :label="$t('geometry.recordFeed.colorLabel')"
+          :label="$t('geometry.recordFeed.geometryFieldLabel')"
         >
-          <b-input-group>
-            <b-form-input
-              v-model="feed.options.color"
-              style="max-width: 50px;"
-              type="color"
-              debounce="300"
-            />
-          </b-input-group>
+          <b-form-select
+            v-model="feed.geometryField"
+            :options="geometryFields | optionizeFields"
+          >
+            <template slot="first">
+              <option
+                disabled
+                value=""
+              >
+                {{ $t('geometry.recordFeed.geometryFieldPlaceholder') }}
+              </option>
+            </template>
+          </b-form-select>
         </b-form-group>
 
         <b-form-group
@@ -59,6 +64,34 @@
               </option>
             </template>
           </b-form-select>
+        </b-form-group>
+
+        <b-form-group
+          horizontal
+          :label-cols="3"
+          breakpoint="md"
+          :label="$t('calendar.recordFeed.prefilterLabel')"
+        >
+          <b-form-textarea
+            v-model="feed.options.prefilter"
+            :value="true"
+            :placeholder="$t('calendar.recordFeed.prefilterPlaceholder')"
+          />
+        </b-form-group>
+
+        <b-form-group
+          horizontal
+          :label-cols="3"
+          breakpoint="md"
+          :label="$t('geometry.recordFeed.colorLabel')"
+        >
+          <c-input-color-picker
+            v-model="feed.options.color"
+            :translations="{
+              modalTitle: $t('geometry.recordFeed.colorPicker'),
+              saveBtnLabel: $t('general:label.saveAndClose')
+            }"
+          />
         </b-form-group>
 
         <b-form-group
@@ -88,42 +121,6 @@
             size="lg"
           />
         </b-form-group>
-
-        <b-form-group
-          horizontal
-          :label-cols="3"
-          breakpoint="md"
-          :label="$t('geometry.recordFeed.geometryFieldLabel')"
-        >
-          <b-form-select
-            v-model="feed.geometryField"
-            :options="geometryFields | optionizeFields"
-          >
-            <template slot="first">
-              <option
-                disabled
-                value=""
-              >
-                {{ $t('geometry.recordFeed.geometryFieldPlaceholder') }}
-              </option>
-            </template>
-          </b-form-select>
-        </b-form-group>
-
-        <br>
-
-        <b-form-group
-          horizontal
-          :label-cols="3"
-          breakpoint="md"
-          :label="$t('calendar.recordFeed.prefilterLabel')"
-        >
-          <b-form-textarea
-            v-model="feed.options.prefilter"
-            :value="true"
-            :placeholder="$t('calendar.recordFeed.prefilterPlaceholder')"
-          />
-        </b-form-group>
       </template>
     </template>
   </div>
@@ -131,10 +128,16 @@
 
 <script>
 import base from './base'
+import { components } from '@cortezaproject/corteza-vue'
+const { CInputColorPicker } = components
 
 export default {
   i18nOptions: {
     namespaces: 'block',
+  },
+
+  components: {
+    CInputColorPicker,
   },
 
   extends: base,

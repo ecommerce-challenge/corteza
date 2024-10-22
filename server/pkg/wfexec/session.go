@@ -171,7 +171,7 @@ func NewSession(ctx context.Context, g *Graph, oo ...SessionOpt) *Session {
 		delayed:  make(map[uint64]*delayed),
 		prompted: make(map[uint64]*prompted),
 
-		//workerInterval: time.Millisecond,
+		// workerInterval: time.Millisecond,
 		workerInterval: time.Millisecond * 250, // debug mode rate
 		workerLock:     make(chan struct{}, 1),
 
@@ -187,7 +187,7 @@ func NewSession(ctx context.Context, g *Graph, oo ...SessionOpt) *Session {
 	}
 
 	s.log = s.log.
-		With(zap.Uint64("sessionID", s.id))
+		With(logger.Uint64("sessionID", s.id))
 
 	s.callStack = append(s.callStack, s.id)
 
@@ -395,15 +395,14 @@ func (s *Session) enqueue(ctx context.Context, st *State) error {
 }
 
 // Wait does not wait for the whole wf to be complete but until:
-//  - context timeout
-//  - idle state
-//  - error in error queue
+//   - context timeout
+//   - idle state
+//   - error in error queue
 func (s *Session) Wait(ctx context.Context) error {
 	return s.WaitUntil(ctx, SessionFailed, SessionDelayed, SessionCompleted)
 }
 
 // WaitUntil blocks until workflow session gets into expected status
-//
 func (s *Session) WaitUntil(ctx context.Context, expected ...SessionStatus) error {
 	indexed := make(map[SessionStatus]bool)
 	for _, status := range expected {
@@ -468,7 +467,7 @@ func (s *Session) worker(ctx context.Context) {
 				return
 			}
 
-			s.log.Debug("pulled state from queue", zap.Uint64("stateID", st.stateId))
+			s.log.Debug("pulled state from queue", logger.Uint64("stateID", st.stateId))
 			if st.step == nil {
 				// We should not terminate if the session contains any delayed or prompted steps.
 				status := s.Status()
@@ -507,7 +506,7 @@ func (s *Session) worker(ctx context.Context) {
 
 				var (
 					err error
-					log = s.log.With(zap.Uint64("stateID", st.stateId))
+					log = s.log.With(logger.Uint64("stateID", st.stateId))
 				)
 
 				nxt, err := s.exec(ctx, log, st)
@@ -545,7 +544,7 @@ func (s *Session) worker(ctx context.Context) {
 
 				s.log.Debug(
 					"executed",
-					zap.Uint64("stateID", st.stateId),
+					logger.Uint64("stateID", st.stateId),
 					zap.Stringer("status", status),
 					zap.Error(st.err),
 				)
@@ -554,9 +553,9 @@ func (s *Session) worker(ctx context.Context) {
 
 				for _, n := range nxt {
 					if n.step != nil {
-						log.Debug("next step queued", zap.Uint64("nextStepId", n.step.ID()))
+						log.Debug("next step queued", logger.Uint64("nextStepId", n.step.ID()))
 					} else {
-						log.Debug("next step queued", zap.Uint64("nextStepId", 0))
+						log.Debug("next step queued", logger.Uint64("nextStepId", 0))
 					}
 					if err = s.enqueue(ctx, n); err != nil {
 						log.Error("unable to enqueue", zap.Error(err))
@@ -653,7 +652,7 @@ func (s *Session) exec(ctx context.Context, log *zap.Logger, st *State) (nxt []*
 	)
 
 	if st.step != nil {
-		log = log.With(zap.Uint64("stepID", st.step.ID()))
+		log = log.With(logger.Uint64("stepID", st.step.ID()))
 	}
 
 	{
@@ -685,11 +684,14 @@ func (s *Session) exec(ctx context.Context, log *zap.Logger, st *State) (nxt []*
 			// handling error with error handling
 			// step set in one of the previous steps
 			log.Warn("step execution error handled",
-				zap.Uint64("errorHandlerStepId", st.errHandler.ID()),
+				logger.Uint64("errorHandlerStepId", st.errHandler.ID()),
 				zap.Error(st.err),
 			)
 
-			_ = expr.Assign(scope, "error", expr.Must(expr.NewString(st.err.Error())))
+			err = setErrorHandlerResultsToScope(scope, st.results, st.err, st.step.ID())
+			if err != nil {
+				return nil, err
+			}
 
 			// copy error handler & disable it on state to prevent inf. loop
 			// in case of another error in the error-handling branch
@@ -731,6 +733,7 @@ func (s *Session) exec(ctx context.Context, log *zap.Logger, st *State) (nxt []*
 			// this step sets error handling step on current state
 			// and continues on the current path
 			st.errHandler = result.handler
+			st.results = st.results.MustMerge(result.results)
 
 			// find step that's not error handler and
 			// use it for the next step
@@ -837,7 +840,7 @@ func (s *Session) exec(ctx context.Context, log *zap.Logger, st *State) (nxt []*
 		// gracefully handling last step of iteration branch
 		// that does not point back to the iterator step
 		st.next = Steps{currLoop.Iterator()}
-		log.Debug("last step in iteration branch, going back", zap.Uint64("backStepId", st.next[0].ID()))
+		log.Debug("last step in iteration branch, going back", logger.Uint64("backStepId", st.next[0].ID()))
 	}
 
 	if len(st.next) == 0 {
@@ -940,4 +943,31 @@ func GetContextCallStack(ctx context.Context) []uint64 {
 	}
 
 	return v.([]uint64)
+}
+
+func setErrorHandlerResultsToScope(scope *expr.Vars, result *expr.Vars, e error, stepID uint64) (err error) {
+	var (
+		ehr = struct {
+			Error        string `json:"error"`
+			ErrorMessage string `json:"errorMessage"`
+			ErrorStepID  string `json:"errorStepID"`
+		}{}
+	)
+
+	err = result.Decode(&ehr)
+	if err != nil {
+		return
+	}
+
+	if len(ehr.Error) > 0 {
+		_ = expr.Assign(scope, ehr.Error, expr.Must(expr.NewAny(e)))
+	}
+	if len(ehr.ErrorMessage) > 0 {
+		_ = expr.Assign(scope, ehr.ErrorMessage, expr.Must(expr.NewString(e.Error())))
+	}
+	if len(ehr.ErrorStepID) > 0 {
+		_ = expr.Assign(scope, ehr.ErrorStepID, expr.Must(expr.NewInteger(stepID)))
+	}
+
+	return
 }

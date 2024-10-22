@@ -9,9 +9,10 @@
       <vue-select
         v-model="value"
         :options="options"
+        :get-option-key="getOptionKey"
         :loading="processing"
         append-to-body
-        :calculate-position="calculatePosition"
+        :calculate-position="calculateDropdownPosition"
         option-value="recordID"
         option-text="label"
         placeholder="Select record"
@@ -154,6 +155,10 @@ export default {
     this.loadLatest()
   },
 
+  beforeDestroy () {
+    this.setDefaultValues()
+  },
+
   methods: {
     encodeValue () {
       if (!this.value) {
@@ -201,7 +206,7 @@ export default {
       }
     }, 300),
 
-    calculatePosition (dropdownList, component, { width }) {
+    calculateDropdownPosition (dropdownList, component, { width }) {
       /**
        * We need to explicitly define the dropdown width since
        * it is usually inherited from the parent with CSS.
@@ -286,6 +291,20 @@ export default {
 
     goToPage (next = true) {
       this.filter.pageCursor = next ? this.filter.nextPage : this.filter.prevPage
+    },
+
+    getOptionKey ({ recordID }) {
+      return recordID
+    },
+
+    setDefaultValues () {
+      this.processing = false
+      this.query = ''
+      this.filter = {}
+      this.namespaceID = NoID
+      this.module = undefined
+      this.options = []
+      this.value = undefined
     },
   },
 }

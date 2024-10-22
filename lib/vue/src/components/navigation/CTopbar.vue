@@ -1,5 +1,5 @@
 <template>
-  <div class="header-navigation d-flex align-items-center sticky-top pr-3">
+  <div class="header-navigation d-flex flex-wrap align-items-center pr-3">
     <div
       class="spacer"
       :class="{
@@ -7,166 +7,177 @@
       }"
     />
 
-    <h2
-      class="d-none d-sm-inline-block text-truncate mb-0"
-    >
+    <h2 class="title py-1 mb-0">
       <slot name="title" />
     </h2>
 
-
-    <div class="ml-auto text-sm-nowrap">
+    <div class="tools-wrapper py-1 ml-auto">
       <slot name="tools" />
     </div>
 
-    <b-button
-      v-if="!hideAppSelector && !settings.hideAppSelector"
-      variant="outline-light"
-      :href="appSelectorURL"
-      size="lg"
-      class="d-flex align-items-center justify-content-center text-dark border-0 nav-icon rounded-circle"
-    >
-      <font-awesome-icon
-        class="m-0 h5"
-        :icon="['fas', 'grip-horizontal']"
-      />
-    </b-button>
+    <div class="d-flex align-items-center ml-auto">
+      <b-button
+        v-if="!hideAppSelector && !settings.hideAppSelector"
+        data-test-id="app-selector"
+        variant="outline-light"
+        :href="appSelectorURL"
+        title="Apps"
+        size="lg"
+        class="d-flex align-items-center justify-content-center text-dark border-0 nav-icon rounded-circle text-sm-nowrap"
+      >
+        <font-awesome-icon
+          class="m-0 h5"
+          :icon="['fas', 'grip-horizontal']"
+        />
+      </b-button>
 
-    <b-dropdown
-      v-if="!settings.hideHelp"
-      data-test-id="dropdown-helper"
-      size="lg"
-      variant="outline-light"
-      class="nav-icon mx-1"
-      toggle-class="text-decoration-none text-dark rounded-circle border-0 w-100"
-      menu-class="topbar-dropdown-menu border-0 shadow-sm text-dark font-weight-bold mt-2"
-      right
-      no-caret
-    >
-      <template #button-content>
-        <div
-          class="d-flex align-items-center justify-content-center"
-        >
-          <font-awesome-icon
-            class="m-0 h5"
-            :icon="['far', 'question-circle']"
-          />
-          <span class="sr-only">
-            {{ labels.helpForum }}
-          </span>
+      <b-dropdown
+        v-if="!settings.hideHelp"
+        data-test-id="dropdown-helper"
+        size="lg"
+        variant="outline-light"
+        toggle-class="text-decoration-none text-dark rounded-circle border-0 w-100"
+        menu-class="topbar-dropdown-menu border-0 shadow-sm text-dark font-weight-bold mt-2"
+        right
+        no-caret
+        class="nav-icon mx-1 text-sm-nowrap"
+      >
+        <template #button-content>
+          <div
+            class="d-flex align-items-center justify-content-center"
+          >
+            <font-awesome-icon
+              class="m-0 h5"
+              :icon="['far', 'question-circle']"
+            />
+            <span class="sr-only">
+              {{ labels.helpForum }}
+            </span>
+          </div>
+        </template>
+        <div>
+          <slot name="help-dropdown" />
         </div>
-      </template>
-      <div>
-        <slot name="help-dropdown" />
-      </div>
-      <b-dropdown-item
-        v-for="(helpLink, index) in helpLinks"
-        :key="index"
-        :href="helpLink.url"
-        :target="helpLink.newTab ? '_blank' : ''"
-      >
-        {{ helpLink.handle }}
-      </b-dropdown-item>
-      <b-dropdown-item
-        v-if="!settings.hideForumLink"
-        data-test-id="dropdown-helper-forum"
-        href="https://forum.cortezaproject.org/"
-        target="_blank"
-      >
-        {{ labels.helpForum }}
-      </b-dropdown-item>
-      <b-dropdown-item
-        v-if="!settings.hideDocumentationLink"
-        data-test-id="dropdown-helper-docs"
-        :href="documentationURL"
-        target="_blank"
-      >
-        {{ labels.helpDocumentation }}
-      </b-dropdown-item>
-      <b-dropdown-item
-        v-if="!settings.hideFeedbackLink"
-        data-test-id="dropdown-helper-feedback"
-        href="mailto:info@crust.tech"
-        target="_blank"
-      >
-        {{ labels.helpFeedback }}
-      </b-dropdown-item>
-      <b-dropdown-divider
-        v-if="!onlyVersion"
-      />
-      <b-dropdown-item
-        disabled
-        class="small"
-      >
-        {{ labels.helpVersion }}
-        <br>
-        {{ frontendVersion }}
-      </b-dropdown-item>
-    </b-dropdown>
-    <b-dropdown
-      v-if="!settings.hideProfile"
-      data-test-id="dropdown-profile"
-      data-v-onboarding="profile"
-      size="lg"
-      variant="outline-light"
-      class="nav-user-icon"
-      toggle-class="nav-icon text-decoration-none text-dark rounded-circle border"
-      menu-class="topbar-dropdown-menu border-0 shadow-sm text-dark font-weight-bold mt-2"
-      right
-      no-caret
-    >
-      <template #button-content>
-        <div
-          class="d-flex align-items-center justify-content-center"
+        <b-dropdown-item
+          v-for="(helpLink, index) in helpLinks"
+          :key="index"
+          :href="helpLink.url | checkValidURL"
+          :target="helpLink.newTab ? '_blank' : ''"
         >
-          <font-awesome-icon
-            class="m-0 h5"
-            :icon="['far', 'user']"
+          {{ helpLink.handle }}
+        </b-dropdown-item>
+        <b-dropdown-item
+          v-if="!settings.hideForumLink"
+          data-test-id="dropdown-helper-forum"
+          href="https://forum.cortezaproject.org/"
+          target="_blank"
+        >
+          {{ labels.helpForum }}
+        </b-dropdown-item>
+        <b-dropdown-item
+          v-if="!settings.hideDocumentationLink"
+          data-test-id="dropdown-helper-docs"
+          :href="documentationURL"
+          target="_blank"
+        >
+          {{ labels.helpDocumentation }}
+        </b-dropdown-item>
+        <b-dropdown-item
+          v-if="!settings.hideFeedbackLink"
+          data-test-id="dropdown-helper-feedback"
+          href="mailto:info@cortezaproject.org"
+          target="_blank"
+        >
+          {{ labels.helpFeedback }}
+        </b-dropdown-item>
+        <b-dropdown-divider
+          v-if="!onlyVersion"
+        />
+        <b-dropdown-item
+          disabled
+          class="small"
+        >
+          {{ labels.helpVersion }}
+          <br>
+          {{ frontendVersion }}
+        </b-dropdown-item>
+      </b-dropdown>
+
+      <b-dropdown
+        v-if="!settings.hideProfile"
+        data-test-id="dropdown-profile"
+        data-v-onboarding="profile"
+        :variant="avatarExists ? 'link' : 'outline-light'"
+        :toggle-class="`nav-icon text-decoration-none text-dark rounded-circle border ${avatarExists ? 'p-0' : ''}`"
+        size="lg"
+        right
+        menu-class="topbar-dropdown-menu border-0 shadow-sm text-dark font-weight-bold mt-2"
+        no-caret
+        class="nav-user-icon"
+      >
+        <template #button-content>
+          <div
+            v-if="avatarExists"
+            class="avatar d-flex h-100"
+            :style="{
+              'background-image': avatarExists  ? `url(${profileAvatarUrl})` : 'none',
+            }"
           />
-          <span class="sr-only">
-            {{ labels.helpForum }}
-          </span>
+
+          <div
+            v-else
+            class="d-flex align-items-center justify-content-center"
+          >
+            <font-awesome-icon
+              class="m-0 h5"
+              :icon="['far', 'user']"
+            />
+            <span class="sr-only">
+              {{ labels.helpForum }}
+            </span>
+          </div>
+        </template>
+        <b-dropdown-text class="text-muted mb-2">
+          {{ labels.userSettingsLoggedInAs }}
+        </b-dropdown-text>
+        <div>
+          <slot name="avatar-dropdown" />
         </div>
-      </template>
-      <b-dropdown-text class="text-muted mb-2">
-        {{ labels.userSettingsLoggedInAs }}
-      </b-dropdown-text>
-      <div>
-        <slot name="avatar-dropdown" />
-      </div>
-      <b-dropdown-item
-        v-for="(profileLink, index) in profileLinks"
-        :key="index"
-        :href="profileLink.url"
-        :target="profileLink.newTab ? '_blank' : ''"
-      >
-        {{ profileLink.handle }}
-      </b-dropdown-item>
-      <b-dropdown-item
-        v-if="!settings.hideProfileLink"
-        data-test-id="dropdown-profile-user"
-        :href="userProfileURL"
-        target="_blank"
-      >
-        {{ labels.userSettingsProfile }}
-      </b-dropdown-item>
-      <b-dropdown-item
-        v-if="!settings.hideChangePasswordLink"
-        data-test-id="dropdown-profile-change-password"
-        :href="changePasswordURL"
-        target="_blank"
-      >
-        {{ labels.userSettingsChangePassword }}
-      </b-dropdown-item>
-      <b-dropdown-divider />
-      <b-dropdown-item
-        data-test-id="dropdown-profile-logout"
-        href=""
-        @click="$auth.logout()"
-        class="mt-2"
-      >
-        {{ labels.userSettingsLogout }}
-      </b-dropdown-item>
-    </b-dropdown>
+        <b-dropdown-item
+          v-for="(profileLink, index) in profileLinks"
+          :key="index"
+          :href="profileLink.url | checkValidURL"
+          :target="profileLink.newTab ? '_blank' : ''"
+        >
+          {{ profileLink.handle }}
+        </b-dropdown-item>
+        <b-dropdown-item
+          v-if="!settings.hideProfileLink"
+          data-test-id="dropdown-profile-user"
+          :href="userProfileURL"
+          target="_blank"
+        >
+          {{ labels.userSettingsProfile }}
+        </b-dropdown-item>
+        <b-dropdown-item
+          v-if="!settings.hideChangePasswordLink"
+          data-test-id="dropdown-profile-change-password"
+          :href="changePasswordURL"
+          target="_blank"
+        >
+          {{ labels.userSettingsChangePassword }}
+        </b-dropdown-item>
+        <b-dropdown-divider />
+        <b-dropdown-item
+          data-test-id="dropdown-profile-logout"
+          href=""
+          @click="$auth.logout()"
+          class="mt-2"
+        >
+          {{ labels.userSettingsLogout }}
+        </b-dropdown-item>
+      </b-dropdown>
+    </div>
   </div>
 </template>
 
@@ -239,6 +250,14 @@ export default {
       /* eslint-disable no-undef */
       return VERSION
     },
+
+    profileAvatarUrl () {
+      return `${this.$SystemAPI.baseURL}/attachment/avatar/${this.$auth.user.meta.avatarID}/original/profile-photo-avatar`
+    },
+
+    avatarExists () {
+      return this.$auth.user.meta.avatarID !== "0" && this.$auth.user.meta.avatarID
+    },
   }
 }
 </script>
@@ -261,20 +280,28 @@ $nav-user-icon-size: 50px;
 }
 
 .nav-user-icon {
-  width: $nav-user-icon-size;
-  height: $nav-user-icon-size;
+  min-width: $nav-user-icon-size;
+  min-height: $nav-user-icon-size;
 }
 
 .header-navigation {
   width: 100vw;
-  height: $header-height;
-  background-color: #F3F3F5 !important;
-  padding-left: calc(3.5rem + 6px);
+  min-height: $header-height;
+  background-color: #F9FAFB !important;
 }
 
-.topbar-dropdown-menu {
-  max-height: 80vh;
-  overflow-y: auto;
+.avatar {
+  border-radius: 50%;
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: center;
+
+  &:hover {
+    opacity: 0.8;
+    transition: opacity .25s ease-in-out;
+    -moz-transition: opacity .25s ease-in-out;
+    -webkit-transition: opacity .25s ease-in-out;
+  }
 }
 
 .spacer {
@@ -292,13 +319,36 @@ $nav-user-icon-size: 50px;
     transition: min-width 0.2s ease-in-out;
   }
 }
+
+.title {
+  display: flex;
+  align-items: center;
+  min-height: $header-height;
+  padding-left: calc(3.5rem + 6px);
+
+  .vue-portal-target {
+    display: -webkit-box; /* For Safari and old versions of Chrome */
+    display: -ms-flexbox; /* For old versions of IE */
+    -webkit-box-orient: vertical; /* For Safari and old versions of Chrome */
+    -webkit-line-clamp: 3; /* Maximum number of lines to display */
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+.tools-wrapper {
+  flex-grow: 1;
+
+  .vue-portal-target {
+    display: flex;
+    justify-content: end;
+    flex-wrap: wrap;
+  }
+}
 </style>
 
 <style lang="scss">
-.topbar-tools {
-  .vue-portal-target {
-    display: flex;
-    align-items: center;
-  }
+.topbar-dropdown-menu {
+  z-index: 1100;
 }
 </style>

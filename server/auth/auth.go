@@ -197,6 +197,7 @@ func New(ctx context.Context, log *zap.Logger, oa2m oauth2def.Manager, s store.S
 		DefaultClient:      defClient,
 		Opt:                svc.opt,
 		Settings:           svc.settings,
+		Attachment:         systemService.DefaultAttachment,
 	}
 
 	external.Init(sesManager.Store())
@@ -339,10 +340,13 @@ func (svc *service) UpdateSettings(s *settings.Settings) {
 		}
 	}
 
-	if len(svc.settings.Providers) != len(s.Providers) {
-		svc.log.Debug("setting changed", zap.Int("providers", len(s.Providers)))
-		external.SetupGothProviders(svc.log, svc.opt.ExternalRedirectURL, s.Providers...)
-	}
+	// Always reload external providers.
+	// This could be optionally skipped by strictly comparing if they actually changed.
+	// OIDC complicates it a bit wit all the mix and matching.
+	// Should be ok for now.
+	// @todo see if we can conditionally skip this
+	svc.log.Debug("setting changed", zap.Int("providers", len(s.Providers)))
+	external.SetupGothProviders(svc.log, svc.opt.ExternalRedirectURL, s.Providers...)
 
 	svc.settings = s
 	svc.handlers.Settings = s

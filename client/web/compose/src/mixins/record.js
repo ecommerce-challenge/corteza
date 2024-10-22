@@ -36,13 +36,10 @@ export default {
 
     /**
      * Tells if given record is deleted; If record not provided, returns undefined
-     * @returns {Boolean|undefined}
+     * @returns {Boolean}
      */
     isDeleted () {
-      if (!this.record) {
-        return
-      }
-      return !!this.record.deletedAt
+      return this.record && this.record.deletedAt
     },
   },
 
@@ -76,6 +73,7 @@ export default {
       this.processingSubmit = true
       this.processing = true
 
+      let record
       const isNew = this.record.recordID === NoID
       const queue = []
 
@@ -83,12 +81,14 @@ export default {
       this.page.blocks.forEach((b, index) => {
         if (b.kind === 'RecordList' && b.options.editable) {
           const p = new Promise((resolve) => {
-            this.$root.$emit(`record-line:collect:${this.page.pageID}-${(this.record || {}).recordID || '0'}-${index}`, resolve)
+            const recordListUniqueID = [this.page.pageID, (this.record || {}).recordID, b.blockID, false].map(v => v || NoID).join('-')
+            this.$root.$emit(`record-line:collect:${recordListUniqueID}`, resolve)
           })
 
           queue.push(p)
         }
       })
+
       const pairs = await Promise.all(queue)
 
       for (const p of pairs) {
@@ -104,18 +104,26 @@ export default {
 
       // Construct batch record payload
       const records = pairs.reduce((acc, cur) => {
-        acc.push({
-          refField: cur.refField,
-          set: cur.items
-            .map(({ r }) => r)
-            .filter(({ deletedAt, recordID }) => recordID !== NoID || !deletedAt),
-          module: cur.module,
-          idPrefix: cur.idPrefix,
-        })
+        if (cur.idPrefix) {
+          // If same module exists, use latest to avoid stale data
+          const existingIndex = acc.findIndex(({ module }) => module.moduleID === cur.module.moduleID)
+          if (existingIndex !== -1) {
+            acc[existingIndex].set = cur.items.map(({ r }) => r).filter(({ deletedAt, recordID }) => recordID !== NoID || !deletedAt)
+          } else {
+            acc.push({
+              refField: cur.refField,
+              set: cur.items.map(({ r }) => r).filter(({ deletedAt, recordID }) => recordID !== NoID || !deletedAt),
+              module: cur.module,
+              idPrefix: cur.idPrefix,
+            })
+          }
+        }
+
         return acc
       }, [])
 
       const { recordID = NoID } = this.record || {}
+
       // Append after the payload construction, so it is not presented as a
       // sub record.
       pairs.push({
@@ -144,26 +152,35 @@ export default {
 
           throw err
         })
-        .then(record => {
-          this.record = new compose.Record(this.module, record)
+        .then(r => {
+          record = new compose.Record(this.module, r)
         })
         .then(() => this.dispatchUiEvent('afterFormSubmit', this.record, { $records: records }))
         .then(() => this.updatePrompts())
         .then(() => {
           if (this.record.valueErrors.set) {
             this.toastWarning(this.$t('notification:record.validationWarnings'))
-          } else if (this.showRecordModal) {
-            this.inEditing = false
-            this.inCreating = false
           } else {
-            this.$router.push({ name: route, params: { ...this.$route.params, recordID: this.record.recordID } })
+            this.inCreating = false
+            this.inEditing = false
+
+            if (this.showRecordModal) {
+              this.$emit('handle-record-redirect', { recordID: record.recordID, recordPageID: this.page.pageID })
+            } else {
+              this.$router.push({ name: route, params: { ...this.$route.params, recordID: record.recordID } })
+            }
+
+            if (!isNew) {
+              this.record = record
+              this.determineLayout().then(() => {
+                this.$root.$emit(`refetch-non-record-blocks:${this.page.pageID}`)
+              })
+            }
           }
+
+          this.toastSuccess(this.$t(`notification:record.${isNew ? 'create' : 'update'}Success`))
         })
-        .catch(this.toastErrorHandler(this.$t(
-          isNew
-            ? 'notification:record.createFailed'
-            : 'notification:record.updateFailed',
-        )))
+        .catch(this.toastErrorHandler(this.$t(`notification:record.${isNew ? 'create' : 'update'}Failed`)))
         .finally(() => {
           this.processingSubmit = false
           this.processing = false
@@ -178,6 +195,7 @@ export default {
       this.processingSubmit = true
       this.processing = true
 
+      let record
       const isNew = this.record.recordID === NoID
 
       return this
@@ -200,16 +218,20 @@ export default {
 
           throw err
         })
-        .then(record => {
-          this.record = new compose.Record(this.module, record)
+        .then(r => {
+          record = new compose.Record(this.module, r)
         })
-        .then(() => this.dispatchUiEvent('beforeFormSubmit', this.record))
+        .then(() => this.dispatchUiEvent('afterFormSubmit', record))
         .then(() => this.updatePrompts())
         .then(() => {
           if (this.record.valueErrors.set) {
             this.toastWarning(this.$t('notification:record.validationWarnings'))
           } else {
-            this.$router.push({ name: route, params: { ...this.$route.params, recordID: this.record.recordID } })
+            this.inCreating = false
+            this.inEditing = false
+            this.record = record
+
+            this.$router.push({ name: route, params: { ...this.$route.params, recordID: record.recordID } })
           }
         })
         .catch(this.toastErrorHandler(this.$t(
@@ -233,13 +255,14 @@ export default {
 
       return this
         .dispatchUiEvent('beforeDelete')
-        .then(() => this.$ComposeAPI.recordDelete(this.record))
+        .then(this.$ComposeAPI.recordDelete(this.record))
         .then(() => {
           this.record.deletedAt = (new Date()).toISOString()
         })
-        .then(() => this.dispatchUiEvent('afterDelete'))
-        .then(() => this.updatePrompts())
+        .then(this.dispatchUiEvent('afterDelete'))
+        .then(this.updatePrompts())
         .then(this.loadRecord)
+        .then(this.toastSuccess(this.$t('notification:record.deleteSuccess')))
         .catch(this.toastErrorHandler(this.$t('notification:record.deleteFailed')))
         .finally(() => {
           this.processingDelete = false
@@ -253,13 +276,60 @@ export default {
 
       return this
         .dispatchUiEvent('beforeUndelete')
-        .then(() => this.$ComposeAPI.recordUndelete(this.record))
-        .then(() => this.dispatchUiEvent('afterUndelete'))
-        .then(() => this.updatePrompts())
+        .then(this.$ComposeAPI.recordUndelete(this.record))
+        .then(this.dispatchUiEvent('afterUndelete'))
+        .then(this.updatePrompts())
         .then(this.loadRecord)
-        .catch(this.toastErrorHandler(this.$t('notification:record.undeleteFailed')))
+        .then(this.toastSuccess(this.$t('notification:record.restoreSuccess')))
+        .catch(this.toastErrorHandler(this.$t('notification:record.restoreFailed')))
         .finally(() => {
           this.processingUndelete = false
+          this.processing = false
+        })
+    }, 500),
+
+    handleBulkUpdateSelectedRecords: throttle(function (query) {
+      this.processing = true
+
+      const values = []
+      this.fields.forEach(f => {
+        const { name, isMulti } = this.getField(f)
+        const value = this.record.values[name] || this.record[name]
+
+        if (!isMulti) {
+          values.push({ name, value: value ? value.toString() : value })
+        } else {
+          value.forEach(v => {
+            values.push({ name, value: v ? v.toString() : v })
+          })
+        }
+      })
+
+      const { moduleID, namespaceID } = this.module
+
+      return this
+        .$ComposeAPI.recordPatch({ moduleID, namespaceID, values, query })
+        .catch(err => {
+          const { details = undefined } = err
+          if (!!details && Array.isArray(details) && details.length > 0) {
+            this.errors = new validator.Validated()
+            this.errors.push(...details)
+
+            throw new Error(this.$t('notification:record.validationErrors'))
+          }
+
+          throw err
+        })
+        .then(this.updatePrompts())
+        .then(() => {
+          this.toastSuccess(this.$t('notification:record.bulkRecordUpdateSuccess'))
+          this.onModalHide()
+          this.fields = []
+          this.record = new compose.Record(this.module, {})
+          this.$emit('save')
+        })
+        .catch(this.toastErrorHandler(this.$t('notification:record.deleteBulkRecordUpdateFailed')))
+        .finally(() => {
           this.processing = false
         })
     }, 500),

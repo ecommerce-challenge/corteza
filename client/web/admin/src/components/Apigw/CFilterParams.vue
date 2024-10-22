@@ -36,8 +36,10 @@
             v-else-if="param.label === 'workflow'"
             v-model="param.value"
             :options="workflows"
+            :get-option-key="getOptionKey"
             :reduce="wf => wf.workflowID"
             :placeholder="$t('filters.placeholders.workflow')"
+            :calculate-position="calculateDropdownPosition"
             class="bg-white"
           />
 
@@ -204,6 +206,12 @@ export default {
           })
         })
     }
+  },
+
+  methods: {
+    getOptionKey ({ workflowID }) {
+      return workflowID
+    },
   },
 }
 </script>

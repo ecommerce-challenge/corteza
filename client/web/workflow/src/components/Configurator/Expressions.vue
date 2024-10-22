@@ -57,6 +57,7 @@
       :ok-title="$t('general:save')"
       :cancel-title="$t('general:cancel')"
       body-class="p-0"
+      no-fade
       @ok="saveExpression"
       @hidden="resetExpression"
     >
@@ -114,18 +115,16 @@ export default {
       return [
         {
           key: 'target',
-          thClass: 'pl-3 py-2',
-          tdClass: 'text-truncate pointer',
-          formatter: (value, key, item) => {
+          label: this.$t('steps:expressions.configurator.target'),
+          thClass: 'pl-4 ml-1',
+          formatter: (item) => {
             return `${item.target}(${item.type})`
           },
-
         },
         {
           key: 'expr',
           label: this.$t('steps:expressions.configurator.expression'),
-          thClass: 'py-2 pr-3',
-          tdClass: 'position-relative pointer',
+          thClass: 'pl-1 mr-3',
         },
       ]
     },

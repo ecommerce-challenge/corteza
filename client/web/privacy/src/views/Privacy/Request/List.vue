@@ -24,6 +24,8 @@
         singlePluralPagination: 'general:resourceList.pagination.single',
         prevPagination: $t('general:resourceList.pagination.prev'),
         nextPagination: $t('general:resourceList.pagination.next'),
+        resourceSingle: $t('general:label.privacy_request.single'),
+        resourcePlural: $t('general:label.privacy_request.plural'),
       }"
       :is-item-selectable="isItemSelectable"
       selectable
@@ -124,6 +126,8 @@ export default {
 
   data () {
     return {
+      processing: false,
+
       isDC: null,
 
       users: {},
@@ -229,7 +233,7 @@ export default {
           this.$root.$emit('bv::refresh::table', 'resource-list')
         })
         .finally(() => {
-          this.processing = true
+          this.processing = false
         })
     },
 

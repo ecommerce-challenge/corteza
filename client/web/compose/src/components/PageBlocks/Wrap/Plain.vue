@@ -1,12 +1,12 @@
 <template>
   <div class="h-100">
     <div
-      class="card bg-transparent h-100"
-      :class="blockClass"
+      class="d-flex flex-column card bg-transparent h-100 overflow-hidden position-static"
+      :class="[blockClass, cardClass]"
     >
       <div
         v-if="showHeader"
-        :class="`card-header bg-transparent border-0 text-nowrap px-3 text-${block.style.variants.headerText}`"
+        :class="`card-header bg-transparent border-0 text-nowrap pl-3 pr-2 mr-1 text-${block.style.variants.headerText}`"
       >
         <div
           v-if="!headerSet"
@@ -22,27 +22,31 @@
               <slot name="title-badge" />
             </h5>
 
-            <div
+            <b-button-group
               v-if="showOptions"
+              size="sm"
               class="ml-auto"
             >
-              <font-awesome-icon
+              <b-button
                 v-if="block.options.showRefresh"
-                :icon="['fa', 'sync']"
-                class="h6 text-secondary"
-                role="button"
+                :title="$t('general.label.refresh')"
+                variant="outline-light"
+                class="d-flex align-items-center text-secondary d-print-none border-0"
                 @click="$emit('refreshBlock')"
-              />
+              >
+                <font-awesome-icon :icon="['fa', 'sync']" />
+              </b-button>
 
-              <font-awesome-icon
+              <b-button
                 v-if="block.options.magnifyOption"
-                :icon="['fas', isBlockOpened ? 'times' : 'search-plus']"
-                :title="$t(isBlockOpened ? '' : 'general.label.magnify')"
-                class="h6 text-secondary ml-2"
-                role="button"
-                @click="$root.$emit('magnify-page-block', isBlockOpened ? undefined : block.blockID)"
-              />
-            </div>
+                :title="isBlockMagnified ? '' : $t('general.label.magnify')"
+                variant="outline-light"
+                class="d-flex align-items-center text-secondary d-print-none border-0"
+                @click="$root.$emit('magnify-page-block', isBlockMagnified ? undefined : magnifyParams)"
+              >
+                <font-awesome-icon :icon="['fas', isBlockMagnified ? 'times' : 'search-plus']" />
+              </b-button>
+            </b-button-group>
           </div>
 
           <b-card-text
@@ -61,7 +65,6 @@
 
       <div
         v-if="toolbarSet"
-        class="overflow-hidden"
       >
         <slot
           name="toolbar"
@@ -69,7 +72,7 @@
       </div>
 
       <div
-        class="card-body p-0"
+        class="card-body p-0 flex-fill"
         :class="{ 'overflow-auto': scrollableBody }"
         style="flex-shrink: 10;"
       >
@@ -80,7 +83,7 @@
 
       <b-card-footer
         v-if="footerSet"
-        class="card-footer bg-transparent p-0 overflow-hidden border-top"
+        class="card-footer bg-transparent p-0 border-top"
       >
         <slot
           name="footer"

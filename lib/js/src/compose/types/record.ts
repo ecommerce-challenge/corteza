@@ -116,7 +116,7 @@ export class Record {
   }
 
   clone (): Record {
-    return new Record(JSON.parse(JSON.stringify(this)))
+    return new Record(this.module, JSON.parse(JSON.stringify(this)))
   }
 
   /**
@@ -420,6 +420,12 @@ export class Record {
     // Update with first item or set to undefined
     this.values[name] = value
   }
+
+  public serialize (): Partial<Record> {
+    const { toJSON, ...values } = this.values
+    return { ...this, values }
+  }
+
 
   /**
    * Returns resource ID

@@ -292,6 +292,11 @@ func (app *CortezaApp) InitServices(ctx context.Context) (err error) {
 		return nil
 	}
 
+	err = app.initEnvoy(ctx, app.Log)
+	if err != nil {
+		return
+	}
+
 	if err := app.Provision(ctx); err != nil {
 		return err
 	}
@@ -345,7 +350,7 @@ func (app *CortezaApp) InitServices(ctx context.Context) (err error) {
 			log = app.Log
 		}
 
-		//Initialize RBAC subsystem
+		// Initialize RBAC subsystem
 		ac := rbac.NewService(log, app.Store)
 
 		// and (re)load rules from the storage backend
@@ -365,14 +370,15 @@ func (app *CortezaApp) InitServices(ctx context.Context) (err error) {
 	// Note: this is a legacy approach, all services from all 3 apps
 	// will most likely be merged in the future
 	err = sysService.Initialize(ctx, app.Log, app.Store, app.WsServer, sysService.Config{
-		ActionLog: app.Opt.ActionLog,
-		Discovery: app.Opt.Discovery,
-		Storage:   app.Opt.ObjStore,
-		Template:  app.Opt.Template,
-		DB:        app.Opt.DB,
-		Auth:      app.Opt.Auth,
-		RBAC:      app.Opt.RBAC,
-		Limit:     app.Opt.Limit,
+		ActionLog:  app.Opt.ActionLog,
+		Discovery:  app.Opt.Discovery,
+		Storage:    app.Opt.ObjStore,
+		Template:   app.Opt.Template,
+		DB:         app.Opt.DB,
+		Auth:       app.Opt.Auth,
+		RBAC:       app.Opt.RBAC,
+		Limit:      app.Opt.Limit,
+		Attachment: app.Opt.Attachment,
 	})
 
 	if err != nil {
@@ -446,7 +452,7 @@ func (app *CortezaApp) InitServices(ctx context.Context) (err error) {
 
 	// Initializing discovery
 	if app.Opt.Discovery.Enabled {
-		err = discoveryService.Initialize(ctx, app.Opt.Discovery, app.Store)
+		err = discoveryService.Initialize(ctx, app.Log, app.Opt.Discovery, app.Store)
 		if err != nil {
 			return fmt.Errorf("could not initialize discovery services: %w", err)
 		}
@@ -606,8 +612,8 @@ func (app *CortezaApp) initSystemEntities(ctx context.Context) (err error) {
 
 	app.Log.Debug(
 		"system entities set",
-		zap.Uint64s("users", uu.IDs()),
-		zap.Uint64s("roles", rr.IDs()),
+		logger.Uint64s("users", uu.IDs()),
+		logger.Uint64s("roles", rr.IDs()),
 	)
 
 	return nil
@@ -622,6 +628,8 @@ func updateAuthSettings(svc authServicer, current *types.AppSettings) {
 		PasswordCreateEnabled:     current.Auth.Internal.PasswordCreate.Enabled,
 		SplitCredentialsCheck:     current.Auth.Internal.SplitCredentialsCheck,
 		ExternalEnabled:           current.Auth.External.Enabled,
+		ProfileAvatarEnabled:      current.Auth.Internal.ProfileAvatar.Enabled,
+		SendUserInviteEmail:       current.Auth.Internal.SendUserInviteEmail.Enabled,
 		MultiFactor: authSettings.MultiFactor{
 			TOTP: authSettings.TOTP{
 				Enabled:  current.Auth.MultiFactor.TOTP.Enabled,
@@ -861,7 +869,7 @@ func applySmtpOptionsToSettings(ctx context.Context, log *zap.Logger, opt option
 	// When settings for the SMTP servers are missing,
 	// we'll try to use one from the options (environmental vars)
 	s := &types.SettingValue{Name: "smtp.servers"}
-	err = s.SetValue([]*types.SmtpServers{optServer})
+	err = s.SetSetting([]*types.SmtpServers{optServer})
 
 	if err != nil {
 		return
@@ -922,7 +930,7 @@ func applyApigwOptionsToSettings(ctx context.Context, log *zap.Logger, opt optio
 func updateSetting(ctx context.Context, path string, val interface{}) (err error) {
 	s := &types.SettingValue{Name: path}
 
-	err = s.SetValue(val)
+	err = s.SetSetting(val)
 
 	if err != nil {
 		return
@@ -965,6 +973,7 @@ func setupSmtpDialer(log *zap.Logger, servers ...types.SmtpServers) {
 		zap.String("host", s.Host),
 		zap.Int("port", s.Port),
 		zap.String("user", s.User),
+		zap.String("from", s.From),
 		logger.Mask("pass", s.Pass),
 		zap.Bool("tsl-insecure", s.TlsInsecure),
 		zap.String("tls-server-name", s.TlsServerName),

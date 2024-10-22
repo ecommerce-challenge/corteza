@@ -10,11 +10,13 @@
       <vue-select
         v-model="module.config.dal.connectionID"
         :options="connections"
+        :get-option-key="getOptionKey"
         :disabled="processing"
         :clearable="false"
         :reduce="s => s.connectionID"
         :placeholder="$t('connection.placeholder')"
         :get-option-label="getConnectionLabel"
+        :calculate-position="calculateDropdownPosition"
         class="bg-white"
       />
     </b-form-group>
@@ -193,6 +195,10 @@ export default {
     this.fetchConnections()
   },
 
+  beforeDestroy () {
+    this.setDefaultValues()
+  },
+
   methods: {
     async fetchConnections () {
       this.processing = true
@@ -256,6 +262,21 @@ export default {
         }
         return enc
       }, {})
+    },
+
+    getOptionKey ({ connectionID }) {
+      return connectionID
+    },
+
+    setDefaultValues () {
+      this.processing = false
+      this.connections = []
+      this.moduleFields = []
+      this.moduleFieldEncoding = []
+      this.selectedGroup = ''
+      this.systemFields = []
+      this.systemFieldEncoding = []
+      this.optionsGroups = []
     },
   },
 }

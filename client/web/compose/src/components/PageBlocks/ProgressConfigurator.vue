@@ -36,7 +36,9 @@
               label="name"
               :placeholder="$t('progress.module.select')"
               :options="modules"
+              :get-option-key="getOptionModuleKey"
               :reduce="m => m.moduleID"
+              :calculate-position="calculateDropdownPosition"
               class="bg-white"
             />
           </b-form-group>
@@ -57,6 +59,7 @@
                   path="metric.edit.filterFootnote"
                   tag="label"
                 >
+                  <code>${record.values.fieldName}</code>
                   <code>${recordID}</code>
                   <code>${ownerID}</code>
                   <code>${userID}</code>
@@ -76,7 +79,9 @@
                 v-model="options.value.field"
                 :placeholder="$t('progress.field.select')"
                 :options="valueModuleFields"
+                :get-option-key="getOptionModuleFieldKey"
                 :reduce="f => f.name"
+                :calculate-position="calculateDropdownPosition"
                 class="bg-white"
                 @input="fieldChanged($event, options.value)"
               />
@@ -96,7 +101,9 @@
                 :disabled="!options.value.field || options.value.field === 'count'"
                 :placeholder="$t('progress.aggregate.select')"
                 :options="aggregationOperations"
+                :get-option-key="getOptionAggregationOperationKey"
                 :reduce="a => a.operation"
+                :calculate-position="calculateDropdownPosition"
                 class="bg-white"
               />
             </b-form-group>
@@ -140,7 +147,9 @@
               label="name"
               :placeholder="$t('progress.module.select')"
               :options="modules"
+              :get-option-key="getOptionModuleKey"
               :reduce="m => m.moduleID"
+              :calculate-position="calculateDropdownPosition"
               class="bg-white"
             />
           </b-form-group>
@@ -161,6 +170,7 @@
                   path="metric.edit.filterFootnote"
                   tag="label"
                 >
+                  <code>${record.values.fieldName}</code>
                   <code>${recordID}</code>
                   <code>${ownerID}</code>
                   <code>${userID}</code>
@@ -180,7 +190,9 @@
                 v-model="options.minValue.field"
                 :placeholder="$t('progress.field.select')"
                 :options="minValueModuleFields"
+                :get-option-key="getOptionModuleFieldKey"
                 :reduce="f => f.name"
+                :calculate-position="calculateDropdownPosition"
                 class="bg-white"
                 @input="fieldChanged($event, options.minValue)"
               />
@@ -200,7 +212,9 @@
                 :disabled="!options.minValue.field || options.minValue.field === 'count'"
                 :placeholder="$t('progress.aggregate.select')"
                 :options="aggregationOperations"
+                :get-option-key="getOptionAggregationOperationKey"
                 :reduce="a => a.operation"
+                :calculate-position="calculateDropdownPosition"
                 class="bg-white"
               />
             </b-form-group>
@@ -244,7 +258,9 @@
               label="name"
               :placeholder="$t('progress.module.select')"
               :options="modules"
+              :get-option-key="getOptionModuleKey"
               :reduce="m => m.moduleID"
+              :calculate-position="calculateDropdownPosition"
               class="bg-white"
             />
           </b-form-group>
@@ -265,6 +281,7 @@
                   path="metric.edit.filterFootnote"
                   tag="label"
                 >
+                  <code>${record.values.fieldName}</code>
                   <code>${recordID}</code>
                   <code>${ownerID}</code>
                   <code>${userID}</code>
@@ -284,7 +301,9 @@
                 v-model="options.maxValue.field"
                 :placeholder="$t('progress.field.select')"
                 :options="maxValueModuleFields"
+                :get-option-key="getOptionModuleFieldKey"
                 :reduce="f => f.name"
+                :calculate-position="calculateDropdownPosition"
                 class="bg-white"
                 @input="fieldChanged($event, options.maxValue)"
               />
@@ -304,7 +323,9 @@
                 :disabled="!options.maxValue.field || options.maxValue.field === 'count'"
                 :placeholder="$t('progress.aggregate.select')"
                 :options="aggregationOperations"
+                :get-option-key="getOptionAggregationOperationKey"
                 :reduce="a => a.operation"
+                :calculate-position="calculateDropdownPosition"
                 class="bg-white"
               />
             </b-form-group>
@@ -633,6 +654,10 @@ export default {
     this.mock.record = new compose.Record(this.mock.module, { mockField: 15 })
   },
 
+  beforeDestroy () {
+    this.setDefaultValues()
+  },
+
   methods: {
     addThreshold () {
       this.options.display.thresholds.push({ value: 0, variant: 'success' })
@@ -648,6 +673,24 @@ export default {
       if (!value || value === 'count') {
         optionsType.operation = ''
       }
+    },
+
+    getOptionModuleKey ({ moduleID }) {
+      return moduleID
+    },
+
+    getOptionModuleFieldKey ({ name }) {
+      return name
+    },
+
+    getOptionAggregationOperationKey ({ operation }) {
+      return operation
+    },
+
+    setDefaultValues () {
+      this.aggregationOperations = []
+      this.variants = []
+      this.mock = {}
     },
   },
 }

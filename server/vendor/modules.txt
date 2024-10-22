@@ -7,7 +7,7 @@ github.com/766b/chi-prometheus
 # github.com/99designs/basicauth-go v0.0.0-20160802081356-2a93ba0f464d
 ## explicit
 github.com/99designs/basicauth-go
-# github.com/Masterminds/goutils v1.1.0
+# github.com/Masterminds/goutils v1.1.1
 ## explicit
 github.com/Masterminds/goutils
 # github.com/Masterminds/semver v1.5.0
@@ -49,8 +49,8 @@ github.com/cespare/xxhash/v2
 # github.com/crewjam/httperr v0.2.0
 ## explicit; go 1.13
 github.com/crewjam/httperr
-# github.com/crewjam/saml v0.4.6
-## explicit; go 1.13
+# github.com/crewjam/saml v0.4.13
+## explicit; go 1.16
 github.com/crewjam/saml
 github.com/crewjam/saml/logger
 github.com/crewjam/saml/samlsp
@@ -77,12 +77,12 @@ github.com/dgryski/dgoogauth
 # github.com/disintegration/imaging v1.6.2
 ## explicit
 github.com/disintegration/imaging
-# github.com/dlclark/regexp2 v1.4.1-0.20201116162257-a2a8dda75c91
-## explicit
+# github.com/dlclark/regexp2 v1.8.1
+## explicit; go 1.13
 github.com/dlclark/regexp2
 github.com/dlclark/regexp2/syntax
-# github.com/dop251/goja v0.0.0-20220422102209-3faab1d8f20e
-## explicit; go 1.14
+# github.com/dop251/goja v0.0.0-20230304130813-e2f543bf4b4c
+## explicit; go 1.16
 github.com/dop251/goja
 github.com/dop251/goja/ast
 github.com/dop251/goja/file
@@ -134,6 +134,9 @@ github.com/evanw/esbuild/internal/runtime
 github.com/evanw/esbuild/internal/sourcemap
 github.com/evanw/esbuild/internal/xxhash
 github.com/evanw/esbuild/pkg/api
+# github.com/fogleman/gg v1.3.0
+## explicit
+github.com/fogleman/gg
 # github.com/fsnotify/fsnotify v1.5.3
 ## explicit; go 1.13
 github.com/fsnotify/fsnotify
@@ -196,7 +199,7 @@ github.com/goccy/go-json/internal/runtime
 # github.com/golang-jwt/jwt v3.2.2+incompatible
 ## explicit
 github.com/golang-jwt/jwt
-# github.com/golang-jwt/jwt/v4 v4.4.1
+# github.com/golang-jwt/jwt/v4 v4.4.3
 ## explicit; go 1.16
 github.com/golang-jwt/jwt/v4
 # github.com/golang-sql/civil v0.0.0-20190719163853-cb61b32ac6fe
@@ -205,6 +208,10 @@ github.com/golang-sql/civil
 # github.com/golang-sql/sqlexp v0.1.0
 ## explicit; go 1.16
 github.com/golang-sql/sqlexp
+# github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0
+## explicit
+github.com/golang/freetype/raster
+github.com/golang/freetype/truetype
 # github.com/golang/mock v1.6.0
 ## explicit; go 1.11
 github.com/golang/mock/gomock
@@ -216,6 +223,9 @@ github.com/golang/protobuf/ptypes
 github.com/golang/protobuf/ptypes/any
 github.com/golang/protobuf/ptypes/duration
 github.com/golang/protobuf/ptypes/timestamp
+# github.com/google/pprof v0.0.0-20230228050547-1710fef4ab10
+## explicit; go 1.19
+github.com/google/pprof/profile
 # github.com/google/uuid v1.1.2
 ## explicit
 github.com/google/uuid
@@ -323,6 +333,9 @@ github.com/markbates/goth/providers/github
 github.com/markbates/goth/providers/google
 github.com/markbates/goth/providers/linkedin
 github.com/markbates/goth/providers/openidConnect
+# github.com/mat/besticon v3.12.0+incompatible
+## explicit
+github.com/mat/besticon/ico
 # github.com/mattermost/xml-roundtrip-validator v0.1.0
 ## explicit; go 1.14
 github.com/mattermost/xml-roundtrip-validator
@@ -397,7 +410,7 @@ github.com/prometheus/common/model
 github.com/prometheus/procfs
 github.com/prometheus/procfs/internal/fs
 github.com/prometheus/procfs/internal/util
-# github.com/russellhaering/goxmldsig v1.1.1
+# github.com/russellhaering/goxmldsig v1.2.0
 ## explicit; go 1.15
 github.com/russellhaering/goxmldsig
 github.com/russellhaering/goxmldsig/etreeutils
@@ -434,9 +447,7 @@ github.com/steinfletcher/apitest/difflib
 github.com/steinfletcher/apitest-jsonpath
 github.com/steinfletcher/apitest-jsonpath/http
 github.com/steinfletcher/apitest-jsonpath/jsonpath
-# github.com/stretchr/objx v0.2.0
-## explicit; go 1.12
-# github.com/stretchr/testify v1.7.1
+# github.com/stretchr/testify v1.8.1
 ## explicit; go 1.13
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/require
@@ -478,13 +489,18 @@ golang.org/x/crypto/pbkdf2
 golang.org/x/crypto/ripemd160
 golang.org/x/crypto/scrypt
 golang.org/x/crypto/ssh/terminal
-# golang.org/x/image v0.0.0-20191009234506-e7c1f5e7dbb8
+# golang.org/x/image v0.5.0
 ## explicit; go 1.12
 golang.org/x/image/bmp
 golang.org/x/image/ccitt
+golang.org/x/image/draw
+golang.org/x/image/font
+golang.org/x/image/font/basicfont
+golang.org/x/image/math/f64
+golang.org/x/image/math/fixed
 golang.org/x/image/tiff
 golang.org/x/image/tiff/lzw
-# golang.org/x/net v0.0.0-20220225172249-27dd8689420f
+# golang.org/x/net v0.7.0
 ## explicit; go 1.17
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
@@ -507,7 +523,7 @@ golang.org/x/oauth2/google/internal/externalaccount
 golang.org/x/oauth2/internal
 golang.org/x/oauth2/jws
 golang.org/x/oauth2/jwt
-# golang.org/x/sys v0.0.0-20220227234510-4e6760a101f9
+# golang.org/x/sys v0.5.0
 ## explicit; go 1.17
 golang.org/x/sys/cpu
 golang.org/x/sys/execabs
@@ -515,10 +531,10 @@ golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/plan9
 golang.org/x/sys/unix
 golang.org/x/sys/windows
-# golang.org/x/term v0.0.0-20210927222741-03fcf44c2211
+# golang.org/x/term v0.5.0
 ## explicit; go 1.17
 golang.org/x/term
-# golang.org/x/text v0.3.7
+# golang.org/x/text v0.8.0
 ## explicit; go 1.17
 golang.org/x/text/cases
 golang.org/x/text/collate
@@ -648,7 +664,7 @@ gopkg.in/mail.v2
 gopkg.in/square/go-jose.v2
 gopkg.in/square/go-jose.v2/cipher
 gopkg.in/square/go-jose.v2/json
-# gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
+# gopkg.in/yaml.v3 v3.0.1
 ## explicit
 gopkg.in/yaml.v3
 # moul.io/zapfilter v1.7.0

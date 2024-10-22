@@ -14,7 +14,9 @@
         <vue-select
           v-model="scenarios.selected"
           :options="scenarioOptions"
+          :get-option-key="getOptionKey"
           :placeholder="$t('pick-scenario')"
+          :calculate-position="calculateDropdownPosition"
           class="bg-white rounded"
           @input="refreshReport()"
         />
@@ -38,6 +40,7 @@
         </b-button>
         <b-button
           variant="primary"
+          class="d-flex align-items-center justify-content-center"
           style="margin-left:2px;"
           :title="$t('tooltip.edit.report')"
           :to="reportEditor"
@@ -182,6 +185,10 @@ export default {
         .finally(() => {
           this.processing = false
         })
+    },
+
+    getOptionKey (scenario) {
+      return scenario
     },
   },
 }

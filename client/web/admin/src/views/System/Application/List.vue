@@ -1,6 +1,6 @@
 <template>
   <b-container
-    class="py-3"
+    fluid="xl"
   >
     <c-content-header
       :title="$t('title')"
@@ -17,6 +17,7 @@
         >
           {{ $t('new') }}
         </b-button>
+
         <c-permissions-button
           v-if="canGrant"
           resource="corteza::system:application/*"
@@ -26,6 +27,7 @@
           {{ $t('permissions') }}
         </c-permissions-button>
       </span>
+
       <b-dropdown
         v-if="false"
         variant="link"
@@ -38,6 +40,7 @@
         </b-dropdown-item-button>
       </b-dropdown>
     </c-content-header>
+
     <c-resource-list
       :primary-key="primaryKey"
       :filter="filter"
@@ -55,8 +58,14 @@
         singlePluralPagination: 'admin:general.pagination.single',
         prevPagination: $t('admin:general.pagination.prev'),
         nextPagination: $t('admin:general.pagination.next'),
+        resourceSingle: $t('general:label.application.single'),
+        resourcePlural: $t('general:label.application.plural'),
       }"
+      clickable
+      sticky-header
+      class="custom-resource-list-height"
       @search="filterList"
+      @row-clicked="handleRowClicked"
     >
       <template #header>
         <c-resource-list-status-filter
@@ -70,16 +79,61 @@
         />
       </template>
 
-      <template #actions="{ item }">
-        <b-button
-          size="sm"
-          variant="link"
-          :to="{ name: editRoute, params: { [primaryKey]: item[primaryKey] } }"
+      <template #actions="{ item: a }">
+        <b-dropdown
+          v-if="(areActionsVisible({ resource: a, conditions: ['canDeleteApplication', 'canGrant'] }) && a.applicationID)"
+          variant="outline-light"
+          toggle-class="d-flex align-items-center justify-content-center text-primary border-0 py-2"
+          no-caret
+          dropleft
+          lazy
+          menu-class="m-0"
         >
-          <font-awesome-icon
-            :icon="['fas', 'pen']"
-          />
-        </b-button>
+          <template #button-content>
+            <font-awesome-icon
+              :icon="['fas', 'ellipsis-v']"
+            />
+          </template>
+
+          <b-dropdown-item
+            v-if="a.applicationID && canGrant"
+            link-class="p-0"
+            variant="light"
+          >
+            <c-permissions-button
+              :title="a.name || a.applicationID"
+              :target="a.name || a.applicationID"
+              :resource="`corteza::system:application/${a.applicationID}`"
+              button-variant="link dropdown-item text-decoration-none text-dark regular-font rounded-0"
+            >
+              <font-awesome-icon :icon="['fas', 'lock']" />
+              {{ $t('permissions') }}
+            </c-permissions-button>
+          </b-dropdown-item>
+
+          <c-input-confirm
+            v-if="a.canDeleteApplication"
+            borderless
+            variant="link"
+            size="md"
+            button-class="dropdown-item text-decoration-none text-dark regular-font rounded-0"
+            class="w-100"
+            @confirmed="handleDelete(a)"
+          >
+            <font-awesome-icon
+              :icon="['far', 'trash-alt']"
+              class="text-danger"
+            />
+            <span
+              v-if="!a.deletedAt"
+              class="p-1"
+            >{{ $t('delete') }}</span>
+            <span
+              v-else
+              class="p-1"
+            >{{ $t('undelete') }}</span>
+          </c-input-confirm>
+        </b-dropdown>
       </template>
     </c-resource-list>
   </b-container>
@@ -143,7 +197,8 @@ export default {
         },
         {
           key: 'actions',
-          tdClass: 'text-right',
+          label: '',
+          class: 'actions',
         },
       ].map(c => ({
         ...c,
@@ -170,6 +225,17 @@ export default {
   methods: {
     items () {
       return this.procListResults(this.$SystemAPI.applicationList(this.encodeListParams()))
+    },
+
+    getAppInfo (item) {
+      return { applicationID: item[this.primaryKey], name: item.name }
+    },
+
+    handleDelete (application) {
+      this.handleItemDelete({
+        resource: application,
+        resourceName: 'application',
+      })
     },
   },
 }

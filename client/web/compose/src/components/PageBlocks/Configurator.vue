@@ -1,24 +1,14 @@
 <template>
   <b-tabs
     data-test-id="page-block-configurator"
-    active-nav-item-class="bg-grey"
     nav-wrapper-class="bg-white border-bottom"
     card
     lazy
   >
-    <template #tabs-end>
-      <page-translator
-        v-if="page"
-        :page="page"
-        :block.sync="block"
-        :disabled="isNew"
-        button-variant="link"
-      />
-    </template>
-
     <b-tab
       data-test-id="general-tab"
       active
+      title-item-class="order-first"
       :title="$t('general.label.general')"
     >
       <b-row>
@@ -77,6 +67,7 @@
         <b-col
           cols="12"
           sm="6"
+          class="mb-2"
         >
           <b-form-group
             :label="$t('general.headerStyle')"
@@ -102,6 +93,14 @@
             switch
           >
             {{ $t('general.border.show') }}
+          </b-form-checkbox>
+
+          <b-form-checkbox
+            v-if="block.kind !== 'Tabs'"
+            v-model="block.meta.hidden"
+            switch
+          >
+            {{ $t('general.hidden.label') }}
           </b-form-checkbox>
         </b-col>
 
@@ -157,6 +156,16 @@
       class="mh-tab overflow-auto"
       v-on="$listeners"
     />
+
+    <template #tabs-end>
+      <page-translator
+        v-if="page"
+        :page="page"
+        :block.sync="block"
+        :disabled="isNew"
+        button-variant="link"
+      />
+    </template>
   </b-tabs>
 </template>
 <script>

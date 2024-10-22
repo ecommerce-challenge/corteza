@@ -1,6 +1,6 @@
 <template>
   <b-card
-    v-if="authClient"
+    v-if="resource"
     data-test-id="card-auth-client-info"
     class="shadow-sm auth-clients"
     header-bg-variant="white"
@@ -14,7 +14,7 @@
         label-cols="3"
       >
         <b-form-input
-          v-model="authClient.meta.name"
+          v-model="resource.meta.name"
           data-test-id="input-name"
           required
           :state="nameState"
@@ -26,9 +26,9 @@
         label-cols="3"
       >
         <b-form-input
-          v-model="authClient.handle"
+          v-model="resource.handle"
           data-test-id="input-handle"
-          :disabled="authClient.isDefault"
+          :disabled="resource.isDefault"
           :placeholder="$t('handle.placeholder-handle')"
           :state="handleState"
         />
@@ -39,8 +39,7 @@
           {{ $t('handle.invalid-handle-characters') }}
         </b-form-invalid-feedback>
         <template
-          v-if="authClient.isDefault"
-          data-test-id="cannot-change-handle"
+          v-if="resource.isDefault"
           #description
         >
           {{ $t('handle.disabledFootnote') }}
@@ -94,7 +93,7 @@
         label-cols="3"
         class="mb-3"
       >
-        <b-input-group>
+        <div class="d-flex">
           <b-form-input
             v-model="secret"
             data-test-id="input-client-secret"
@@ -105,8 +104,8 @@
           <b-button
             v-if="!secretVisible"
             data-test-id="button-show-client-secret"
-            class="ml-1 text-primary"
-            variant="link"
+            class="text-primary border-0 px-3"
+            variant="outline-light"
             @click="$emit('request-secret')"
           >
             <font-awesome-icon
@@ -117,8 +116,8 @@
           <b-button
             v-else
             data-test-id="button-regenerate-client-secret"
-            class="ml-1 text-primary"
-            variant="link"
+            class="text-primary border-0 px-3"
+            variant="outline-light"
             :title="$t('tooltip.regenerate-secret')"
             @click="$emit('regenerate-secret')"
           >
@@ -126,14 +125,14 @@
               :icon="['fas', 'sync']"
             />
           </b-button>
-        </b-input-group>
+        </div>
       </b-form-group>
 
       <b-form-group
         label-cols="3"
       >
         <b-form-radio-group
-          v-model="authClient.validGrant"
+          v-model="resource.validGrant"
           value="authorization_code"
           :options="[
             { value: 'authorization_code', text: $t('grant.authorization_code') },
@@ -148,33 +147,16 @@
         label-cols="3"
         :description="$t('validFrom.description')"
       >
-        <b-input-group>
-          <b-form-datepicker
-            v-model="validFrom.date"
-            data-test-id="datepicker-choose-date"
-            :placeholder="$t('choose-date')"
-            locale="en"
-          />
-
-          <b-form-timepicker
-            v-model="validFrom.time"
-            data-test-id="timepicker-choose-time"
-            :placeholder="$t('no-time')"
-            locale="en"
-          />
-
-          <b-button
-            data-test-id="button-reset-value"
-            class="ml-1 text-secondary"
-            variant="link"
-            :title="$t('tooltip.reset-value')"
-            @click="resetDateTime('validFrom')"
-          >
-            <font-awesome-icon
-              :icon="['fas', 'sync']"
-            />
-          </b-button>
-        </b-input-group>
+        <c-input-date-time
+          v-model="resource.validFrom"
+          data-test-id="input-valid-from"
+          :labels="{
+            clear: $t('general:label.clear'),
+            none: $t('general:label.none'),
+            now: $t('general:label.now'),
+            today: $t('general:label.today'),
+          }"
+        />
       </b-form-group>
 
       <b-form-group
@@ -183,33 +165,16 @@
         label-cols="3"
         :description="$t('expiresAt.description')"
       >
-        <b-input-group>
-          <b-form-datepicker
-            v-model="expiresAt.date"
-            data-test-id="datepicker-choose-date"
-            :placeholder="$t('choose-date')"
-            locale="en"
-          />
-
-          <b-form-timepicker
-            v-model="expiresAt.time"
-            data-test-id="timepicker-choose-time"
-            :placeholder="$t('no-time')"
-            locale="en"
-          />
-
-          <b-button
-            data-test-id="button-reset-value"
-            class="ml-1 text-secondary"
-            variant="link"
-            :title="$t('tooltip.reset-value')"
-            @click="resetDateTime('expiresAt')"
-          >
-            <font-awesome-icon
-              :icon="['fas', 'sync']"
-            />
-          </b-button>
-        </b-input-group>
+        <c-input-date-time
+          v-model="resource.expiresAt"
+          data-test-id="input-expires-at"
+          :labels="{
+            clear: $t('general:label.clear'),
+            none: $t('general:label.none'),
+            now: $t('general:label.now'),
+            today: $t('general:label.today'),
+          }"
+        />
       </b-form-group>
 
       <b-form-group
@@ -217,21 +182,21 @@
       >
         <b-form-checkbox
           data-test-id="checkbox-allow-access-to-user-profile"
-          :checked="(authClient.scope || []).includes('profile')"
+          :checked="(resource.scope || []).includes('profile')"
           @change="setScope($event, 'profile')"
         >
           {{ $t('profile') }}
         </b-form-checkbox>
         <b-form-checkbox
           data-test-id="checkbox-allow-access-to-corteza-api"
-          :checked="(authClient.scope || []).includes('api')"
+          :checked="(resource.scope || []).includes('api')"
           @change="setScope($event, 'api')"
         >
           {{ $t('api') }}
         </b-form-checkbox>
         <b-form-checkbox
           data-test-id="checkbox-allow-client-to-use-oidc"
-          :checked="(authClient.scope || []).includes('openid')"
+          :checked="(resource.scope || []).includes('openid')"
           @change="setScope($event, 'openid')"
         >
           {{ $t('openid') }}
@@ -239,7 +204,7 @@
         <b-form-checkbox
           v-if="discoveryEnabled"
           data-test-id="checkbox-allow-client-access-to-discovery"
-          :checked="(authClient.scope || []).includes('discovery')"
+          :checked="(resource.scope || []).includes('discovery')"
           @change="setScope($event, 'discovery')"
         >
           {{ $t('discovery') }}
@@ -250,7 +215,7 @@
         label-cols="3"
       >
         <b-form-checkbox
-          v-model="authClient.trusted"
+          v-model="resource.trusted"
           data-test-id="checkbox-is-client-trusted"
         >
           {{ $t('trusted.label') }}
@@ -262,15 +227,15 @@
         label-cols="3"
       >
         <b-form-checkbox
-          v-model="authClient.enabled"
+          v-model="resource.enabled"
           data-test-id="checkbox-is-client-enabled"
-          :disabled="authClient.isDefault"
+          :disabled="resource.isDefault"
         >
           {{ $t('enabled.label') }}
         </b-form-checkbox>
 
         <template
-          v-if="authClient.isDefault"
+          v-if="resource.isDefault"
           #description
         >
           {{ $t('enabled.disabledFootnote') }}
@@ -285,13 +250,14 @@
           :description="$t('security.impersonateUser.description')"
         >
           <c-select-user
-            :user-i-d="authClient.security.impersonateUser"
+            :user-i-d="resource.security.impersonateUser"
             @updateUser="onUpdateUser"
           />
         </b-form-group>
         <div v-if="!fresh">
           <b-form-group label-cols="3">
             <b-button
+              data-test-id="button-cURL-snippet"
               variant="light"
               class="align-top"
               @click="toggleCurlSnippet()"
@@ -314,17 +280,18 @@
               <div class="d-flex">
                 <pre
                   ref="cUrl"
-                  data-test-id="cURL"
+                  data-test-id="cURL-string"
+                  style="word-break: break-word;"
                 >
 curl -X POST {{ curlURL }} \
 -d grant_type=client_credentials \
 -d scope='profile api' \
--u {{ authClient.authClientID }}:{{ secret || 'PLACE-YOUR-CLIENT-SECRET-HERE' }}
+-u {{ resource.authClientID }}:{{ secret || 'PLACE-YOUR-CLIENT-SECRET-HERE' }}
                 </pre>
                 <b-button
-                  data-test-id="copy-cURL"
+                  data-test-id="button-copy-cURL"
                   variant="link"
-                  class="align-top ml-auto fit-content text-secondary"
+                  class="align-top ml-auto fit-content text-secondary mr-5"
                   @click="copyToClipboard('cUrl')"
                 >
                   <font-awesome-icon
@@ -376,7 +343,7 @@ curl -X POST {{ curlURL }} \
         class="mb-0"
       >
         <c-role-picker
-          v-model="authClient.security.permittedRoles"
+          v-model="resource.security.permittedRoles"
           class="mb-3"
         >
           <template #description>
@@ -392,7 +359,7 @@ curl -X POST {{ curlURL }} \
         class="mb-0"
       >
         <c-role-picker
-          v-model="authClient.security.prohibitedRoles"
+          v-model="resource.security.prohibitedRoles"
           class="mb-3"
         >
           <template #description>
@@ -408,7 +375,7 @@ curl -X POST {{ curlURL }} \
         class="mb-0"
       >
         <c-role-picker
-          v-model="authClient.security.forcedRoles"
+          v-model="resource.security.forcedRoles"
           class="mb-3"
         >
           <template #description>
@@ -418,14 +385,14 @@ curl -X POST {{ curlURL }} \
       </b-form-group>
 
       <b-form-group
-        v-if="authClient.createdAt"
+        v-if="resource.createdAt"
         :label="$t('createdAt')"
         label-cols="3"
         class="mb-0"
       >
         <b-form-input
           data-test-id="created-at"
-          :value="authClient.createdAt | locFullDateTime"
+          :value="resource.createdAt | locFullDateTime"
           plaintext
           disabled
         />
@@ -491,7 +458,7 @@ curl -X POST {{ curlURL }} \
           v-if="isDeleted"
           data-test-id="button-undelete"
           :disabled="processing"
-          @confirmed="$emit('undelete', authClient.authClientID)"
+          @confirmed="$emit('undelete', resource.authClientID)"
         >
           {{ $t('undelete') }}
         </confirmation-toggle>
@@ -499,7 +466,7 @@ curl -X POST {{ curlURL }} \
           v-else
           data-test-id="button-delete"
           :disabled="processing"
-          @confirmed="$emit('delete', authClient.authClientID)"
+          @confirmed="$emit('delete', resource.authClientID)"
         >
           {{ $t('delete') }}
         </confirmation-toggle>
@@ -510,8 +477,7 @@ curl -X POST {{ curlURL }} \
 
 <script>
 import { NoID } from '@cortezaproject/corteza-js'
-import { handle } from '@cortezaproject/corteza-vue'
-import Vue from 'vue'
+import { handle, components } from '@cortezaproject/corteza-vue'
 import ConfirmationToggle from 'corteza-webapp-admin/src/components/ConfirmationToggle'
 import CSubmitButton from 'corteza-webapp-admin/src/components/CSubmitButton'
 import CRolePicker from 'corteza-webapp-admin/src/components/CRolePicker'
@@ -519,12 +485,7 @@ import CSelectUser from 'corteza-webapp-admin/src/components/Authclient/CSelectU
 import copy from 'copy-to-clipboard'
 import axios from 'axios'
 
-const defSecurity = Object.freeze({
-  impersonateUser: '0',
-  permittedRoles: [],
-  prohibitedRoles: [],
-  forcedRoles: [],
-})
+const { CInputDateTime } = components
 
 export default {
   name: 'CAuthclientEditorInfo',
@@ -539,6 +500,7 @@ export default {
     CSubmitButton,
     CRolePicker,
     CSelectUser,
+    CInputDateTime,
   },
 
   props: {
@@ -574,40 +536,8 @@ export default {
   },
 
   data () {
-    const authClient = Vue.util.extend({
-      trusted: false,
-      handle: '',
-      meta: {
-        name: '',
-        description: '',
-      },
-
-      redirectURI: '',
-      validGrant: '',
-
-      // make sure all references are destroyed
-    }, this.resource)
-
-    authClient.security = { ...defSecurity, ...authClient.security }
-
     return {
-      // setup all object props we need (reactivity)
-      // when we migrate it to corteza-js using a proper Class this can remove it
-      authClient,
-
       redirectURI: this.resource.redirectURI ? this.resource.redirectURI.split(' ') : [],
-
-      // @todo should be handled via computed props
-      validFrom: this.resource.validFrom ? {
-        date: new Date(this.resource.validFrom).toISOString().split('T')[0],
-        time: new Date(this.resource.validFrom).toTimeString().split(' ')[0],
-      } : { date: null, time: null },
-
-      // @todo should be handled via computed props
-      expiresAt: this.resource.expiresAt ? {
-        date: new Date(this.resource.expiresAt).toISOString().split('T')[0],
-        time: new Date(this.resource.expiresAt).toTimeString().split(' ')[0],
-      } : { date: null, time: null },
 
       curlVisible: false,
       curlURL: '',
@@ -620,11 +550,11 @@ export default {
 
   computed: {
     fresh () {
-      return !this.authClient.authClientID || this.authClient.authClientID === NoID
+      return !this.resource.authClientID || this.resource.authClientID === NoID
     },
 
     editable () {
-      return this.fresh ? this.canCreate : this.authClient.canUpdateAuthClient
+      return this.fresh ? this.canCreate : this.resource.canUpdateAuthClient
     },
 
     isDeleted () {
@@ -636,15 +566,15 @@ export default {
     },
 
     nameState () {
-      return this.authClient.meta.name ? null : false
+      return this.resource.meta.name ? null : false
     },
 
     handleState () {
-      return handle.handleState(this.authClient.handle)
+      return handle.handleState(this.resource.handle)
     },
 
     isClientCredentialsGrant () {
-      return this.authClient.validGrant === 'client_credentials'
+      return this.resource.validGrant === 'client_credentials'
     },
 
     discoveryEnabled () {
@@ -659,14 +589,14 @@ export default {
   watch: {
     'redirectURI': {
       handler (redirectURI) {
-        this.authClient.redirectURI = redirectURI.filter(ru => ru).join(' ')
+        this.resource.redirectURI = redirectURI.filter(ru => ru).join(' ')
       },
     },
   },
 
   methods: {
     onUpdateUser (user) {
-      this.authClient.security.impersonateUser = (user || {}).userID
+      this.resource.security.impersonateUser = (user || {}).userID
     },
 
     getAccessTokenAPI () {
@@ -676,7 +606,7 @@ export default {
       axios.post(
         this.curlURL,
         params,
-        { auth: { username: this.authClient.authClientID, password: this.secret } }
+        { auth: { username: this.resource.authClientID, password: this.secret } }
       ).then(response => {
         this.tokenRequest.token = (response.data || {}).access_token
       }).catch(error => {
@@ -700,27 +630,15 @@ export default {
     },
 
     submit () {
-      if (this.validFrom.date && this.validFrom.time) {
-        this.authClient.validFrom = new Date(`${this.validFrom.date} ${this.validFrom.time}`).toISOString()
-      } else {
-        this.authClient.validFrom = undefined
+      if (!this.isClientCredentialsGrant || !this.resource.security.impersonateUser) {
+        this.resource.security.impersonateUser = '0'
       }
 
-      if (!this.isClientCredentialsGrant || !this.authClient.security.impersonateUser) {
-        this.authClient.security.impersonateUser = '0'
-      }
-
-      if (this.expiresAt.date && this.expiresAt.time) {
-        this.authClient.expiresAt = new Date(`${this.expiresAt.date} ${this.expiresAt.time}`).toISOString()
-      } else {
-        this.authClient.expiresAt = undefined
-      }
-
-      this.$emit('submit', this.authClient)
+      this.$emit('submit', this.resource)
     },
 
     setScope (value, target) {
-      let items = this.authClient.scope ? this.authClient.scope.split(' ') : []
+      let items = this.resource.scope ? this.resource.scope.split(' ') : []
 
       if (value) {
         items.push(target)
@@ -728,29 +646,22 @@ export default {
         items = items.filter(i => i !== target)
       }
 
-      this.authClient.scope = items.join(' ')
-    },
-
-    resetDateTime (target) {
-      if (target) {
-        this[target].date = undefined
-        this[target].time = undefined
-      }
+      this.resource.scope = items.join(' ')
     },
   },
 }
 </script>
 <style lang="scss">
-.auth-clients{
-  .fit-content{
+.auth-clients {
+  .fit-content {
     height:fit-content;
   }
-  .overflow-wrap{
+  .overflow-wrap {
       overflow-wrap: anywhere;
   }
-  .curl .form-row{
+  .curl .form-row {
     flex-wrap: nowrap !important;
-    .col{
+    .col {
       max-width: 84.3%;
     }
   }

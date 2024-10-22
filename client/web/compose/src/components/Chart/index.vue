@@ -11,12 +11,13 @@
       v-if="renderer"
       :chart="renderer"
       class="flex-fill p-1"
+      v-on="$listeners"
     />
   </div>
 </template>
 
 <script>
-import { mapGetters } from 'vuex'
+import { mapGetters, mapActions } from 'vuex'
 import { chartConstructor } from 'corteza-webapp-compose/src/lib/charts'
 import { compose, NoID } from '@cortezaproject/corteza-js'
 import { components } from '@cortezaproject/corteza-vue'
@@ -74,11 +75,15 @@ export default {
   },
 
   beforeDestroy () {
-    const { pageID = NoID } = this.$route.params
-    this.$root.$off(`refetch-non-record-blocks:${pageID}`)
+    this.destroyEvents()
+    this.setDefaultValues()
   },
 
   methods: {
+    ...mapActions({
+      resolveUsers: 'user/resolveUsers',
+    }),
+
     async updateChart () {
       this.renderer = undefined
 
@@ -109,7 +114,7 @@ export default {
               ...module.systemFields(),
             ].find(({ name }) => name === field)
 
-            if (meta.fields) {
+            if (meta.fields && field.kind === 'Select') {
               data.labels = data.labels.map(value => {
                 const { text } = field.options.options.find(o => o.value === value) || {}
                 return text || value
@@ -120,7 +125,7 @@ export default {
           if (field && ['User', 'Record'].includes(field.kind)) {
             if (field.kind === 'User') {
               // Fetch and map users to labels
-              await this.$store.dispatch('user/fetchUsers', data.labels)
+              await this.resolveUsers(data.labels)
               data.labels = data.labels.map(label => {
                 return field.formatter(this.getUserByID(label)) || label
               })
@@ -129,8 +134,9 @@ export default {
               const { namespaceID } = this.chart || {}
               const recordModule = this.getModuleByID(field.options.moduleID)
               if (recordModule && data.labels) {
+                const isValidRecordID = (recordID) => recordID !== dimension.default && recordID !== 'undefined'
                 await Promise.all(data.labels.map(recordID => {
-                  if (recordID && recordID !== 'undefined') {
+                  if (isValidRecordID(recordID)) {
                     return this.$ComposeAPI.recordRead({ namespaceID, moduleID: recordModule.moduleID, recordID }).then(record => {
                       record = new compose.Record(recordModule, record)
 
@@ -192,6 +198,16 @@ export default {
     error (msg) {
       /* eslint-disable no-console */
       console.error(msg)
+    },
+
+    setDefaultValues () {
+      this.processing = false
+      this.rendeder = undefined
+    },
+
+    destroyEvents () {
+      const { pageID = NoID } = this.$route.params
+      this.$root.$off(`refetch-non-record-blocks:${pageID}`)
     },
   },
 }

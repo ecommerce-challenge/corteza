@@ -3,11 +3,16 @@
     <b-button
       :id="popoverTarget"
       :title="$t('recordList.filter.title')"
-      variant="link p-0 ml-1"
-      :class="[inFilter ? 'text-primary' : 'text-secondary']"
+      :variant="variant"
+      class="d-flex align-items-center text-secondary d-print-none border-0 px-1 h-100"
+      :class="buttonClass"
+      :style="buttonStyle"
       @click.stop
     >
-      <font-awesome-icon :icon="['fas', 'filter']" />
+      <font-awesome-icon
+        :icon="['fas', 'filter']"
+        :class="[inFilter ? 'text-primary' : 'text-secondary']"
+      />
     </b-button>
 
     <b-popover
@@ -65,13 +70,14 @@
                     <vue-select
                       v-model="filter.name"
                       :options="fieldOptions"
+                      :get-option-key="getOptionKey"
                       :clearable="false"
                       :placeholder="$t('recordList.filter.fieldPlaceholder')"
                       option-value="name"
                       option-text="label"
                       :reduce="f => f.name"
                       append-to-body
-                      :calculate-position="calculatePosition"
+                      :calculate-position="calculateDropdownPosition"
                       :class="{ 'filter-field-picker': !!filter.name }"
                       class="field-selector bg-white"
                       @input="onChange($event, groupIndex, index)"
@@ -213,13 +219,23 @@
             {{ $t('general:label.reset') }}
           </b-button>
 
-          <b-button
-            ref="btnSave"
-            variant="primary"
-            @click="onSave"
-          >
-            {{ $t('general.label.save') }}
-          </b-button>
+          <div class="d-flex">
+            <b-button
+              v-if="allowFilterPresetSave"
+              variant="outline-primary"
+              class="mr-2"
+              @click="onSave(true, 'filter-preset')"
+            >
+              {{ $t('recordList.filter.addFilterToPreset') }}
+            </b-button>
+            <b-button
+              ref="btnSave"
+              variant="primary"
+              @click="onSave"
+            >
+              {{ $t('general.label.save') }}
+            </b-button>
+          </div>
         </b-card-footer>
       </b-card>
 
@@ -235,7 +251,6 @@
 import FieldEditor from '../ModuleFields/Editor'
 import { compose, validator } from '@cortezaproject/corteza-js'
 import { VueSelect } from 'vue-select'
-import calculatePosition from 'corteza-webapp-compose/src/mixins/vue-select-position'
 
 export default {
   i18nOptions: {
@@ -247,10 +262,6 @@ export default {
     VueSelect,
   },
 
-  mixins: [
-    calculatePosition,
-  ],
-
   props: {
     target: {
       type: String,
@@ -261,17 +272,40 @@ export default {
       type: Object,
       required: true,
     },
+
     namespace: {
       type: Object,
       required: true,
     },
+
     module: {
       type: Object,
       required: true,
     },
+
     recordListFilter: {
       type: Array,
       required: true,
+    },
+
+    variant: {
+      type: String,
+      default: 'outline-light',
+    },
+
+    buttonClass: {
+      type: String,
+      default: '',
+    },
+
+    buttonStyle: {
+      type: String,
+      default: '',
+    },
+
+    allowFilterPresetSave: {
+      type: Boolean,
+      default: false,
     },
   },
 
@@ -319,6 +353,10 @@ export default {
     },
   },
 
+  beforeDestroy () {
+    this.setDefaultValues()
+  },
+
   created () {
     // Change all module fields to single value to keep multi value fields and single value
     const module = JSON.parse(JSON.stringify(this.module || {}))
@@ -327,6 +365,13 @@ export default {
       ...[...module.fields].map(f => {
         f.multi = f.isMulti
         f.isMulti = false
+
+        // Disable edge case options
+        if (f.kind === 'DateTime') {
+          f.options.onlyFutureValues = false
+          f.options.onlyPastValues = false
+        }
+
         return f
       }),
       ...this.module.systemFields().map(sf => {
@@ -493,8 +538,7 @@ export default {
       this.componentFilter = [
         this.createDefaultFilterGroup(),
       ]
-
-      this.onSave(false)
+      this.$emit('reset')
     },
 
     deleteFilter (groupIndex, index) {
@@ -530,40 +574,38 @@ export default {
     },
 
     onOpen () {
-      if (this.recordListFilter.length) {
-        // Create record and fill its values property if value exists
-        this.componentFilter = this.recordListFilter
-          .filter(({ filter = [] }) => filter.some(f => f.name))
-          .map(({ groupCondition, filter = [] }) => {
-            filter = filter.map(({ value, ...f }) => {
-              f.record = new compose.Record(this.mock.module, {})
+      // Create record and fill its values property if value exists
+      this.componentFilter = this.recordListFilter
+        .filter(({ filter = [] }) => filter.some(f => f.name))
+        .map(({ groupCondition, filter = [], name }) => {
+          filter = filter.map(({ value, ...f }) => {
+            f.record = new compose.Record(this.mock.module, {})
 
-              if (this.isBetweenOperator(f.operator)) {
-                if (this.getField(f.name).isSystem) {
-                  f.record[`${f.name}-start`] = value.start
-                  f.record[`${f.name}-end`] = value.end
-                } else {
-                  f.record.values[`${f.name}-start`] = value.start
-                  f.record.values[`${f.name}-end`] = value.end
-                }
-
-                const field = this.mock.module.fields.find(field => field.name === f.name)
-
-                this.mock.module.fields.push({ ...field, name: `${f.name}-end` })
-                this.mock.module.fields.push({ ...field, name: `${f.name}-start` })
-              } else if (Object.keys(f.record).includes(f.name)) {
-                // If its a system field add value to root of record
-                f.record[f.name] = value
+            if (this.isBetweenOperator(f.operator)) {
+              if (this.getField(f.name).isSystem) {
+                f.record[`${f.name}-start`] = value.start
+                f.record[`${f.name}-end`] = value.end
               } else {
-                f.record.values[f.name] = value
+                f.record.values[`${f.name}-start`] = value.start
+                f.record.values[`${f.name}-end`] = value.end
               }
 
-              return f
-            })
+              const field = this.mock.module.fields.find(field => field.name === f.name)
 
-            return { groupCondition, filter }
+              this.mock.module.fields.push({ ...field, name: `${f.name}-end` })
+              this.mock.module.fields.push({ ...field, name: `${f.name}-start` })
+            } else if (Object.keys(f.record).includes(f.name)) {
+              // If its a system field add value to root of record
+              f.record[f.name] = value
+            } else {
+              f.record.values[f.name] = value
+            }
+
+            return f
           })
-      }
+
+          return { groupCondition, filter, name }
+        })
 
       // If no filterGroups, add default
       if (!this.componentFilter.length) {
@@ -571,13 +613,8 @@ export default {
       }
     },
 
-    onSave (close = true) {
-      if (close) {
-        this.$refs.popover.$emit('close')
-      }
-
-      // Emit only value and not whole record with every filter
-      this.$emit('filter', this.componentFilter.map(({ groupCondition, filter = [] }) => {
+    processFilter () {
+      return this.componentFilter.map(({ groupCondition, filter = [], name }) => {
         filter = filter.map(({ record, ...f }) => {
           if (record) {
             f.value = record[f.name] || record.values[f.name]
@@ -593,8 +630,17 @@ export default {
           return f
         })
 
-        return { groupCondition, filter }
-      }))
+        return { groupCondition, filter, name }
+      })
+    },
+
+    onSave (close = true, type = 'filter') {
+      if (close) {
+        this.$refs.popover.$emit('close')
+      }
+
+      // Emit only value and not whole record with every filter
+      this.$emit(type, this.processFilter())
     },
 
     updateFilterProperties (filter) {
@@ -611,6 +657,17 @@ export default {
 
     isBetweenOperator (op) {
       return ['BETWEEN', 'NOT BETWEEN'].includes(op)
+    },
+
+    getOptionKey ({ name }) {
+      return name
+    },
+
+    setDefaultValues () {
+      this.componentFilter = []
+      this.conditions = []
+      this.mock = {}
+      this.preventPopoverClose = false
     },
   },
 }
@@ -632,7 +689,7 @@ export default {
     padding: 0;
     color: #2d2d2d;
     text-align: center;
-    background: white;
+    background: $white;
     border-radius: 0.25rem;
     opacity: 1 !important;
     box-shadow: 0 3px 48px #00000026;
@@ -645,12 +702,12 @@ export default {
 
   .arrow {
     &::before {
-      border-bottom-color: white;
-      border-top-color: white;
+      border-bottom-color: $white;
+      border-top-color: $white;
     }
 
     &::after {
-      border-top-color: white;
+      border-top-color: $white;
     }
   }
 }
@@ -673,7 +730,7 @@ td {
 .btn-add-group {
   &:hover, &:active {
     background-color: $primary !important;
-    color: white !important;
+    color: $white !important;
   }
 }
 </style>

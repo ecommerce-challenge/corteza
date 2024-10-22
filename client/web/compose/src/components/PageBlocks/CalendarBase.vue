@@ -75,7 +75,7 @@
       </div>
 
       <div
-        ref="cc"
+        :ref="`cc-${blockIndex}`"
         class="h-100"
       >
         <div
@@ -87,7 +87,7 @@
 
         <full-calendar
           v-show="show && !processing"
-          ref="fc"
+          :ref="`fc-${blockIndex}`"
           :key="key"
           :height="getHeight()"
           :events="events"
@@ -102,6 +102,7 @@
 <script>
 import moment from 'moment'
 import { mapGetters, mapActions } from 'vuex'
+import axios from 'axios'
 import base from './base'
 import FullCalendar from '@fullcalendar/vue'
 import dayGridPlugin from '@fullcalendar/daygrid'
@@ -158,6 +159,8 @@ export default {
       },
 
       refreshing: false,
+
+      cancelTokenSource: axios.CancelToken.source(),
     }
   },
 
@@ -208,13 +211,15 @@ export default {
   },
 
   watch: {
-    'block.options': {
+    options: {
       deep: true,
       handler () {
         this.updateSize()
+        this.refresh()
       },
     },
-    boundingRect: {
+
+    'block.xywh': {
       deep: true,
       handler () {
         setTimeout(() => {
@@ -227,6 +232,11 @@ export default {
   created () {
     this.changeLocale(this.currentLanguage)
     this.refreshBlock(this.refresh)
+  },
+
+  beforeDestroy () {
+    this.setDefaultValues()
+    this.abortRequests()
   },
 
   methods: {
@@ -259,7 +269,9 @@ export default {
 
     // Proxy to the FC API
     api () {
-      return this.$refs.fc.getApi()
+      if (this.$refs[`fc-${this.blockIndex}`]) {
+        return this.$refs[`fc-${this.blockIndex}`].getApi()
+      }
     },
 
     /**
@@ -303,14 +315,16 @@ export default {
                   })
                 }
 
-                return compose.PageBlockCalendar.RecordFeed(this.$ComposeAPI, module, this.namespace, ff, this.loaded)
+                return compose.PageBlockCalendar.RecordFeed(this.$ComposeAPI, module, this.namespace, ff, this.loaded, { cancelToken: this.cancelTokenSource.token })
                   .then(events => {
+                    events = this.setEventColors(events, ff)
                     this.events.push(...events)
                   })
               })
           case compose.PageBlockCalendar.feedResources.reminder:
             return compose.PageBlockCalendar.ReminderFeed(this.$SystemAPI, this.$auth.user, feed, this.loaded)
               .then(events => {
+                events = this.setEventColors(events, feed)
                 this.events.push(...events)
               })
         }
@@ -318,6 +332,7 @@ export default {
         .finally(() => {
           this.processing = false
           this.refreshing = false
+
           setTimeout(() => {
             this.updateSize()
           })
@@ -338,21 +353,53 @@ export default {
         return
       }
 
-      this.$router.push({ name: 'page.record', params: { recordID, pageID: page.pageID } })
+      const route = { name: 'page.record', params: { recordID, pageID: page.pageID } }
+
+      if (this.options.eventDisplayOption === 'newTab') {
+        window.open(this.$router.resolve(route).href)
+      } else if (this.options.eventDisplayOption === 'modal') {
+        this.$root.$emit('show-record-modal', {
+          recordID,
+          recordPageID: page.pageID,
+        })
+      } else {
+        this.$router.push(route)
+      }
     },
 
     getHeight () {
-      if (this.$refs.cc) {
-        return this.$refs.cc.clientHeight
+      if (this.$refs[`cc-${this.blockIndex}`]) {
+        return this.$refs[`cc-${this.blockIndex}`].clientHeight
       }
       return 'auto'
     },
 
     refresh () {
       this.refreshing = true
-      this.api().refetchEvents().then(() => {
-        this.key++
+      new Promise(resolve => resolve(this.api().refetchEvents()))
+        .then(() => this.key++)
+        .catch(() => this.toastErrorHandler(this.$t('notification:page.block.calendar.eventFetchFailed')))
+    },
+
+    setEventColors (events, feed) {
+      return events.map(event => {
+        event.backgroundColor = feed.options.color
+        return event
       })
+    },
+
+    setDefaultValues () {
+      this.processing = false
+      this.show = false
+      this.events = []
+      this.locale = undefined
+      this.title = ''
+      this.loaded = {}
+      this.refreshing = false
+    },
+
+    abortRequests () {
+      this.cancelTokenSource.cancel(`cancel-record-list-request-${this.block.blockID}`)
     },
   },
 }
@@ -366,7 +413,7 @@ export default {
 </style>
 <style lang="scss">
 .calendar-container {
-  .fc-content {
+  .fc-content, .event-record {
     cursor: pointer;
   }
 

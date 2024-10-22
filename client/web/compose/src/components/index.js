@@ -11,15 +11,16 @@ import { Icon } from 'leaflet'
 import ECharts from 'vue-echarts'
 import { use } from 'echarts/core'
 import {
-  SVGRenderer,
+  CanvasRenderer,
 } from 'echarts/renderers'
 import {
   LineChart,
   BarChart,
   PieChart,
   GaugeChart,
-  HeatmapChart,
+  RadarChart,
   FunnelChart,
+  ScatterChart,
 } from 'echarts/charts'
 import {
   TitleComponent,
@@ -28,6 +29,7 @@ import {
   TooltipComponent,
   VisualMapComponent,
   ToolboxComponent,
+  DataZoomComponent,
 } from 'echarts/components'
 
 use([
@@ -35,15 +37,17 @@ use([
   LineChart,
   PieChart,
   GaugeChart,
-  HeatmapChart,
+  RadarChart,
   FunnelChart,
-  SVGRenderer,
+  ScatterChart,
+  CanvasRenderer,
   TitleComponent,
   GridComponent,
   TooltipComponent,
   LegendComponent,
   VisualMapComponent,
   ToolboxComponent,
+  DataZoomComponent,
 ])
 
 Vue.component('e-charts', ECharts)
@@ -55,6 +59,7 @@ Vue.component('c-permissions-button', components.CPermissionsButton)
 Vue.component('c-input-confirm', components.CInputConfirm)
 Vue.component('c-input-processing', components.CInputProcessing)
 Vue.component('c-resource-list', components.CResourceList)
+Vue.component('c-input-checkbox', components.CInputCheckbox)
 
 // Map things
 Vue.component('l-map', LMap)

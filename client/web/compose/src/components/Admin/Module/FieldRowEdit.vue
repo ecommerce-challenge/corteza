@@ -44,6 +44,7 @@
         <b-select
           v-model="value.kind"
           :disabled="disabled"
+          @change="$emit('updateKind')"
         >
           <option
             v-for="({ kind, label }) in fieldKinds"
@@ -58,7 +59,6 @@
             variant="light"
             :title="$t('tooltip.field')"
             :disabled="!value.cap.configurable"
-            class="px-2"
             @click.prevent="$emit('edit')"
           >
             <font-awesome-icon
@@ -95,19 +95,19 @@
       class="text-right align-middle pr-2"
       style="min-width: 100px;"
     >
-      <c-input-confirm
-        :no-prompt="!value.name"
-        class="mr-2"
-        @confirmed="$emit('delete')"
-      />
       <c-permissions-button
         v-if="canGrant && exists"
-        class="text-dark px-0"
-        button-variant="link"
+        button-variant="outline-light"
+        size="sm"
         :title="value.label || value.name || value.fieldID"
         :target="value.label || value.name || value.fieldID"
         :tooltip="$t('permissions:resources.compose.module-field.tooltip')"
         :resource="`corteza::compose:module-field/${module.namespaceID}/${module.moduleID}/${value.fieldID}`"
+        class="text-dark border-0 mr-2"
+      />
+
+      <c-input-confirm
+        @confirmed="$emit('delete')"
       />
     </td>
   </tr>

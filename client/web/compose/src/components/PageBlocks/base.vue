@@ -12,12 +12,6 @@ export default {
   },
 
   props: {
-    boundingRect: {
-      type: Object,
-      required: false,
-      default: undefined,
-    },
-
     blockIndex: {
       type: Number,
       default: -1,
@@ -31,6 +25,11 @@ export default {
     page: {
       type: compose.Page,
       required: true,
+    },
+
+    blocks: {
+      type: Array,
+      default: () => [],
     },
 
     block: {
@@ -61,6 +60,18 @@ export default {
       required: false,
       default: false,
     },
+
+    resizing: {
+      type: Boolean,
+      required: false,
+      default: false,
+    },
+
+    magnified: {
+      type: Boolean,
+      required: false,
+      default: false,
+    },
   },
 
   data () {
@@ -83,6 +94,13 @@ export default {
     autoRefreshEnabled () {
       return this.options.refreshRate >= 5 && ['page', 'page.record'].includes(this.$route.name)
     },
+
+    // detect when a page block is opened in a modal through magnification or record open type
+    inModal () {
+      const { recordPageID, magnifiedBlockID } = this.$route.query
+
+      return !!recordPageID || !!magnifiedBlockID
+    },
   },
 
   beforeDestroy () {
@@ -96,11 +114,11 @@ export default {
      * If reloading data does not refresh the page block
      * You should attach :key="key" to it and increment it in the refreshFunction
      */
-    refreshBlock (refreshFunction) {
+    refreshBlock (refreshFunction, ...params) {
       if (!this.autoRefreshEnabled || this.refreshInterval) return
 
       const interval = setInterval(() => {
-        refreshFunction()
+        refreshFunction(...params)
       }, this.options.refreshRate * 1000)
 
       this.refreshInterval = interval

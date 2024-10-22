@@ -2,53 +2,99 @@
   <b-container fluid>
     <b-row>
       <b-col
-        cols="4"
+        cols="12"
       >
-        <b-list-group>
-          <b-list-group-item
-            v-for="(type) in types"
-            :key="type.label"
-            :disabled="!recordPage && type.recordPageOnly"
-            button
-            @click="$emit('select', type.block)"
-            @mouseover="current = type.image"
-          >
-            {{ type.label }}
-          </b-list-group-item>
-        </b-list-group>
+        <b-button
+          v-for="(type) in types"
+          :key="type.label"
+          :disabled="isOptionDisabled(type)"
+          variant="outline-light"
+          class="mr-2 mb-2 text-dark"
+          @click="$emit('select', type.block)"
+          @mouseover="current = type.image"
+          @mouseleave="current = undefined"
+        >
+          {{ type.label }}
+        </b-button>
       </b-col>
+
       <b-col
-        cols="8"
-        class="my-auto"
+        cols="12"
+        style="height: 50vh;"
+        class="d-flex align-items-center"
       >
         <b-img
           v-if="current"
-          fluid
-          thumbnail
           :src="current"
+          center
+          fluid
+          class="mx-auto mh-100"
         />
       </b-col>
-    </b-row>
-    <b-row
-      class="border-top mt-2"
-    >
-      <b-col>
-        <div
-          class="mt-2"
-        >
-          {{ $t('selectBlockFootnote') }}
-        </div>
+
+      <hr
+        v-if="existingBlocks.length"
+        class="w-100"
+      >
+
+      <b-col
+        v-if="existingBlocks.length"
+        cols="12"
+      >
+        <b-input-group class="d-flex w-100">
+          <vue-select
+            v-model="selectedExistingBlock"
+            :get-option-label="getBlockLabel"
+            :get-option-key="b => b.blockID"
+            :options="existingBlocks"
+            :calculate-position="calculateDropdownPosition"
+            :placeholder="$t('selector.selectableBlocks.placeholder')"
+            append-to-body
+            class="bg-white"
+          />
+
+          <b-input-group-append>
+            <b-button
+              :title="$t('selector.tooltip.clone.noRef')"
+              variant="light"
+              :disabled="!selectedExistingBlock"
+              class="d-flex align-items-center"
+              @click="$emit('select', selectedExistingBlock.clone())"
+            >
+              <font-awesome-icon
+                :icon="['far', 'clone']"
+              />
+            </b-button>
+            <b-button
+              :title="$t('selector.tooltip.clone.ref')"
+              variant="light"
+              :disabled="!selectedExistingBlock"
+              class="d-flex align-items-center"
+              @click="$emit('select', selectedExistingBlock)"
+            >
+              <font-awesome-icon
+                :icon="['far', 'copy']"
+              />
+            </b-button>
+          </b-input-group-append>
+        </b-input-group>
       </b-col>
     </b-row>
   </b-container>
 </template>
+
 <script>
-import { compose } from '@cortezaproject/corteza-js'
 import * as images from '../../../../assets/PageBlocks'
+import { VueSelect } from 'vue-select'
+import { compose } from '@cortezaproject/corteza-js'
 
 export default {
   i18nOptions: {
     namespaces: 'block',
+  },
+
+  components: {
+    VueSelect,
   },
 
   props: {
@@ -56,11 +102,24 @@ export default {
       type: Boolean,
       default: false,
     },
+
+    disabledKinds: {
+      type: Array,
+      default: () => [],
+    },
+
+    existingBlocks: {
+      type: Array,
+      default: () => [],
+    },
   },
 
   data () {
     return {
       current: undefined,
+
+      selectedExistingBlock: undefined,
+
       types: [
         {
           label: this.$t('automation.label'),
@@ -150,12 +209,37 @@ export default {
           image: images.Geometry,
         },
         {
+          label: this.$t('tabs.label'),
+          block: new compose.PageBlockTab(),
+          image: images.Tabs,
+        },
+        {
           label: this.$t('navigation.label'),
           block: new compose.PageBlockNavigation(),
           image: images.Navigation,
         },
       ],
     }
+  },
+
+  beforeDestroy () {
+    this.setDefaultValues()
+  },
+
+  methods: {
+    isOptionDisabled (type) {
+      return (!this.recordPage && type.recordPageOnly) || this.disabledKinds.includes(type.block.kind)
+    },
+
+    getBlockLabel ({ title, kind }) {
+      return title || kind
+    },
+
+    setDefaultValues () {
+      this.current = undefined
+      this.selectedExistingBlock = undefined
+      this.types = []
+    },
   },
 }
 </script>

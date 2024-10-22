@@ -9,15 +9,17 @@
         />
       </b-form-group>
     </td>
-    <td>
+    <td style="min-width: 200px;">
       <b-form-group :label="$t('navigation.composePage')">
         <vue-select
           key="pageID"
           v-model="options.item.pageID"
           :placeholder="$t('navigation.none')"
-          :options="tree"
+          :options="pageList"
           append-to-body
+          :get-option-key="getOptionKey"
           label="title"
+          :calculate-position="calculateDropdownPosition"
           :reduce="f => f.pageID"
           option-value="pageID"
           option-text="title"
@@ -35,19 +37,21 @@
       </b-form-group>
     </td>
     <td
-      v-if="selectedPageChildren(options.item.pageID)"
+      v-if="selectedPageChildren(options.item.pageID).length > 0"
       cols="12"
       sm="6"
       class="align-middle text-center"
     >
-      <b-form-group class="m-0">
-        <b-form-checkbox
+      <b-form-group
+        :label="$t('navigation.displaySubPages')"
+        label-class="text-nowrap"
+        class="d-flex align-items-center justify-content-center mb-0"
+      >
+        <c-input-checkbox
           v-model="options.item.displaySubPages"
           switch
           size="sm"
-        >
-          {{ $t('navigation.displaySubPages') }}
-        </b-form-checkbox>
+        />
       </b-form-group>
     </td>
     <td />
@@ -58,7 +62,7 @@
 import base from './base'
 
 import { VueSelect } from 'vue-select'
-import { compose } from '@cortezaproject/corteza-js'
+import { NoID, compose } from '@cortezaproject/corteza-js'
 
 export default {
   components: {
@@ -76,7 +80,11 @@ export default {
 
   data () {
     return {
-      tree: [],
+      pageList: [],
+      checkboxLabel: {
+        on: this.$t('general:label.yes'),
+        off: this.$t('general:label.no'),
+      },
       targetOptions: [
         { value: 'sameTab', text: this.$t('navigation.sameTab') },
         { value: 'newTab', text: this.$t('navigation.newTab') },
@@ -84,32 +92,53 @@ export default {
     }
   },
 
+  beforeDestroy () {
+    this.setDefaultValues()
+  },
+
   created () {
-    this.loadTree()
+    this.loadPages()
   },
 
   methods: {
     selectedPageChildren (pageID) {
-      const tree = this.tree ? this.tree.find(t => t.pageID === pageID) : {}
-      return tree && tree.children ? tree.children.length > 0 : false
+      return this.pageList.filter(value => value.selfID === pageID && value.moduleID === NoID) || []
     },
 
-    loadTree () {
+    loadPages () {
       const { namespaceID } = this.namespace
       this.$ComposeAPI
-        .pageTree({ namespaceID })
-        .then(tree => {
-          this.tree = tree.map(p => new compose.Page(p))
+        .pageList({ namespaceID, sort: 'title' })
+        .then(({ set: pages }) => {
+          this.pageList = pages.map(p => new compose.Page(p)).filter(p => p.moduleID === NoID)
         })
         .catch(this.toastErrorHandler(this.$t('notification:page.loadFailed')))
     },
 
     updateLabelValue (pageID) {
       if (!this.options.item.label) {
-        const composePage = this.tree.find(t => t.pageID === pageID)
+        const composePage = this.pageList.find(t => t.pageID === pageID)
         this.options.item.label = composePage ? composePage.title : ''
       }
+    },
+
+    getOptionKey ({ pageID }) {
+      return pageID
+    },
+
+    setDefaultValues () {
+      this.pageList = []
+      this.checkboxLabel = {}
+      this.targetOptions = []
     },
   },
 }
 </script>
+
+<style lang="scss" scoped>
+th,
+td {
+  padding-left: 15px;
+  padding-right: 15px;
+}
+</style>

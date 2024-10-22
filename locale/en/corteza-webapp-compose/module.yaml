@@ -72,7 +72,7 @@ edit:
   systemFields: 'System fields:'
   tooltip:
     attributes: Select if the field can hold multiple values, if it's required field or if contains sensitive data
-    name: Should be at least 2 characters long and start with a letter. Can contain only letters, numbers, dashes, underscores and dots
+    name: Should be at least 2 characters long. Can contain only letters, numbers, dashes, underscores and dots. Must end with letter or number
     private: Sensitive data
     required: Required field
     title: The name displayed in form input / data lists
@@ -100,15 +100,15 @@ edit:
       module-fields:
         label: Module field mapping and encoding
         description: |
-          Configure how record fields are stored and read from the database. 
+          Configure how record fields are stored and read from the database.
           Default behaviour is to encode values into JSON and store them in a single field.
-          Alternatively you can use columns with the same name as the field name (Column) 
+          Alternatively you can use columns with the same name as the field name (Column)
           or use an Alias and store the value directly in the column.
 
       system-fields:
         label: System field mapping and encoding
         description: |
-          System fields are used to store metadata about the record. 
+          System fields are used to store metadata about the record.
           Configure to skip or store them into a column with the same name (Column),
           a different column (Alias) or encode them into JSON.
         grouptypes:
@@ -136,7 +136,7 @@ edit:
     privacy:
       title: Privacy
       sensitivity-level:
-        label: Highest allowed allowed sensitivity level
+        label: Highest allowed sensitivity level
         placeholder: Select a sensitivity level
         description: Highest allowed level of sensitivity for fields on this module, changing this value will reset the sensitivity level of fields if they are incompatible.
       usage-disclosure:
@@ -172,7 +172,7 @@ edit:
       valueModifiers: Value modifiers
       multiValues: Multi-field values
       add: Add
-      searchFields: Search fields
+      searchFields: Add field(s) to constraint
       ignoreCase: Ignore case
       fuzzyMatch: Fuzzy match
       soundsLike: Sounds like
@@ -184,7 +184,7 @@ edit:
       type: Type
       none: None
       addNewConstraint: Add new constraint
-      uniqueValueConstraint: Unique value constraint &#x23;{{index}}
+      uniqueValueConstraint: "Unique value constraint #{{index}}"
 
 federated: Federated
 forModule:
@@ -193,6 +193,7 @@ forModule:
   recordPage: Record page for module
 general:
   fields: Module fields
+  unsavedChanges: Unsaved changes will be lost. Do you wish to leave the page?
   label:
     attributes: Attributes
     handle: Handle
@@ -204,7 +205,7 @@ general:
   placeholder:
     handle: Handle
     sample: Sample
-    invalid-handle-characters: Should be at least 2 characters long and start with a letter. Can contain only letters, numbers, dashes, underscores and dots
+    invalid-handle-characters: Should be at least 2 characters long. Can contain only letters, numbers, dashes, underscores and dots. Must end with letter or number
 import: Module import
 navigation:
   module: Modules
@@ -218,6 +219,7 @@ list:
     name: Name
     handle: Handle
     changedAt: Last change
+  delete: Delete
 
 recordPage:
   create: Create record page

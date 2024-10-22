@@ -6,10 +6,13 @@ import (
 	"fmt"
 	"html/template"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/cortezaproject/corteza/server/system/service"
 
 	"github.com/cortezaproject/corteza/server/auth/external"
 	"github.com/cortezaproject/corteza/server/auth/request"
@@ -50,6 +53,8 @@ type (
 		SendEmailOTP(ctx context.Context) (err error)
 		ConfigureEmailOTP(ctx context.Context, userID uint64, enable bool) (u *types.User, err error)
 		ValidateEmailOTP(ctx context.Context, code string) (err error)
+		SendInviteEmail(ctx context.Context, email string) (err error)
+		ValidateInviteEmailToken(ctx context.Context, token string) (user *types.User, err error)
 	}
 
 	credentialsService interface {
@@ -62,6 +67,9 @@ type (
 	userService interface {
 		FindByAny(ctx context.Context, identifier interface{}) (*types.User, error)
 		Update(context.Context, *types.User) (*types.User, error)
+		UploadAvatar(ctx context.Context, userID uint64, upload *multipart.FileHeader) (err error)
+		GenerateAvatar(ctx context.Context, userID uint64, bgColor string, initialColor string) (err error)
+		DeleteAvatar(ctx context.Context, userID uint64) (err error)
 	}
 
 	clientService interface {
@@ -121,6 +129,7 @@ type (
 		Opt                options.AuthOpt
 		Settings           *settings.Settings
 		SamlSPService      *saml.SamlSPService
+		Attachment         service.AttachmentService
 	}
 
 	handlerFn func(req *request.AuthReq) error
@@ -136,6 +145,7 @@ const (
 	TmplRequestPasswordReset     = "request-password-reset.html.tpl"
 	TmplPasswordResetRequested   = "password-reset-requested.html.tpl"
 	TmplResetPassword            = "reset-password.html.tpl"
+	TmplInvite                   = "invite.html.tpl"
 	TmplSecurity                 = "security.html.tpl"
 	TmplProfile                  = "profile.html.tpl"
 	TmplSessions                 = "sessions.html.tpl"
@@ -192,6 +202,12 @@ func (h *AuthHandlers) handle(fn handlerFn) http.HandlerFunc {
 
 		err := func() (err error) {
 			if err = r.ParseForm(); err != nil {
+				return
+			}
+
+			// Caching 32MB to memory, the rest to disk
+			err = r.ParseMultipartForm(32 << 20)
+			if err != nil && err != http.ErrNotMultipart {
 				return
 			}
 

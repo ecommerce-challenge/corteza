@@ -1,6 +1,6 @@
 <template>
   <b-container
-    class="py-3"
+    fluid="xl"
   >
     <c-content-header
       :title="$t('title')"
@@ -17,6 +17,7 @@
         >
           {{ $t('new') }}
         </b-button>
+
         <c-permissions-button
           v-if="canGrant"
           resource="corteza::system:auth-client/*"
@@ -27,6 +28,7 @@
         </c-permissions-button>
       </span>
     </c-content-header>
+
     <c-resource-list
       :primary-key="primaryKey"
       :filter="filter"
@@ -44,9 +46,15 @@
         singlePluralPagination: 'admin:general.pagination.single',
         prevPagination: $t('admin:general.pagination.prev'),
         nextPagination: $t('admin:general.pagination.next'),
+        resourceSingle: $t('general:label.auth_client.single'),
+        resourcePlural: $t('general:label.auth_client.plural'),
       }"
+      clickable
+      sticky-header
       hide-search
+      class="custom-resource-list-height"
       @search="filterList"
+      @row-clicked="handleRowClicked"
     >
       <template #header>
         <c-resource-list-status-filter
@@ -60,16 +68,70 @@
         />
       </template>
 
-      <template #actions="{ item }">
-        <b-button
-          size="sm"
-          variant="link"
-          :to="{ name: editRoute, params: { [primaryKey]: item[primaryKey] } }"
+      <template #actions="{ item: a }">
+        <b-dropdown
+          v-if="(areActionsVisible({ resource: a, conditions: ['canDeleteAuthClient', 'canGrant'] }) && a.authClientID)"
+          variant="outline-light"
+          toggle-class="d-flex align-items-center justify-content-center text-primary border-0 py-2"
+          no-caret
+          dropleft
+          lazy
+          menu-class="m-0"
         >
-          <font-awesome-icon
-            :icon="['fas', 'pen']"
-          />
-        </b-button>
+          <template #button-content>
+            <font-awesome-icon
+              :icon="['fas', 'ellipsis-v']"
+            />
+          </template>
+
+          <b-dropdown-item
+            v-if="a.authClientID && canGrant"
+            link-class="p-0"
+          >
+            <c-permissions-button
+              :title="a.meta.name || a.handle || a.authClientID"
+              :target="a.meta.name || a.handle || a.authClientID"
+              :resource="`corteza::system:auth-client/${a.authClientID}`"
+              button-variant="link dropdown-item text-decoration-none text-dark regular-font rounded-0"
+              class="text-dark d-print-none border-0"
+            >
+              <font-awesome-icon :icon="['fas', 'lock']" />
+              {{ $t('permissions') }}
+            </c-permissions-button>
+          </b-dropdown-item>
+
+          <b-dropdown-item
+            v-if="!a.isDefault && a.canDeleteAuthClient"
+            link-class="p-0"
+          >
+            <c-input-confirm
+              borderless
+              variant="link"
+              size="md"
+              button-class="dropdown-item text-decoration-none text-dark regular-font rounded-0"
+              class="w-100"
+              @confirmed="handleDelete(a)"
+            >
+              <font-awesome-icon
+                :icon="['far', 'trash-alt']"
+                class="text-danger"
+              />
+              <span
+                v-if="!a.deletedAt"
+                class="p-1"
+              >
+                {{ $t('delete') }}
+              </span>
+
+              <span
+                v-else
+                class="p-1"
+              >
+                {{ $t('undelete') }}
+              </span>
+            </c-input-confirm>
+          </b-dropdown-item>
+        </b-dropdown>
       </template>
     </c-resource-list>
   </b-container>
@@ -133,7 +195,7 @@ export default {
         },
         {
           key: 'actions',
-          tdClass: 'text-right',
+          class: 'actions',
         },
       ].map(c => ({
         ...c,
@@ -161,6 +223,15 @@ export default {
     items () {
       return this.procListResults(this.$SystemAPI.authClientList(this.encodeListParams()))
     },
+
+    handleDelete (authclient) {
+      this.handleItemDelete({
+        resource: { clientID: authclient.authClientID },
+        resourceName: 'authClient',
+        locale: 'authclient',
+      })
+    },
+
   },
 }
 </script>

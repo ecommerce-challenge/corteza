@@ -16,6 +16,9 @@ export {
   CInputCron,
   CInputSearch,
   CRichTextInput,
+  CInputCheckbox,
+  CInputColorPicker,
+  CAceEditor,
 } from './input'
 
 export {

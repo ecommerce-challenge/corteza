@@ -1,6 +1,6 @@
 {
   "name": "corteza-workflow",
-  "version": "2023.3.0-dev.2",
+  "version": "2023.3.8",
   "scripts": {
     "serve": "vue-cli-service serve",
     "dev-env": "vue-cli-service serve src/dev-env.js",
@@ -14,8 +14,8 @@
     "pre-commit": "yarn lint"
   },
   "dependencies": {
-    "@cortezaproject/corteza-js": "^2023.3.0-dev.2",
-    "@cortezaproject/corteza-vue": "^2023.3.0-dev.2",
+    "@cortezaproject/corteza-js": "^2023.3.8",
+    "@cortezaproject/corteza-vue": "^2023.3.8",
     "@fortawesome/fontawesome-svg-core": "^1.2.21",
     "@fortawesome/free-regular-svg-icons": "^5.10.1",
     "@fortawesome/free-solid-svg-icons": "^5.10.1",
@@ -29,6 +29,7 @@
     "vue-router": "3.1.5",
     "vue-select": "^3.11.2",
     "vue2-ace-editor": "^0.0.15",
+    "vuedraggable": "^2.23.0",
     "vuex": "^3.6.2"
   },
   "devDependencies": {

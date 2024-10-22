@@ -31,10 +31,12 @@
           data-test-id="select-role-list"
           label="name"
           :options="roles"
+          :get-option-key="getOptionKey"
           :reduce="role => role.roleID"
           :loading="processingRoles"
           multiple
           :placeholder="$t('ui.clone.pick-role')"
+          :calculate-position="calculateDropdownPosition"
           class="bg-white"
         />
       </b-form-group>
@@ -101,6 +103,10 @@ export default {
           this.processingSubmit = false
           this.showModal = false
         })
+    },
+
+    getOptionKey ({ roleID }) {
+      return roleID
     },
   },
 }

@@ -17,20 +17,24 @@
           <vue-select
             v-model="scenarios.selected"
             :options="scenarioOptions"
+            :get-option-key="getOptionKey"
             :placeholder="$t('builder:pick-scenario')"
+            :calculate-position="calculateDropdownPosition"
             class="bg-white rounded"
             @input="refreshReport()"
           />
 
           <b-input-group-append>
             <b-button
-              variant="secondary"
+              variant="light"
               :disabled="!canUpdate"
+              size="sm"
               :title="$t('builder:tooltip.configure-scenarios')"
               @click="openScenarioConfigurator"
             >
               <font-awesome-icon
                 :icon="['fas', 'cog']"
+                class="text-primary"
               />
             </b-button>
           </b-input-group-append>
@@ -39,7 +43,7 @@
 
       <b-button
         :disabled="!canUpdate"
-        variant="secondary"
+        variant="info"
         size="sm"
         class="mr-1"
         @click="openDatasourceConfigurator"
@@ -65,6 +69,7 @@
         </b-button>
         <b-button
           variant="primary"
+          class="d-flex align-items-center justify-content-center"
           style="margin-left:2px;"
           :title="$t('builder:tooltip.edit.report')"
           :disabled="!canUpdate"
@@ -78,9 +83,10 @@
     </portal>
 
     <grid
-      v-if="report && canRead &&showReport"
+      v-if="report && canRead && showReport"
       :blocks.sync="reportBlocks"
       editable
+      @item-updated="onBlockUpdated"
     >
       <template
         slot-scope="{ block, index }"
@@ -89,34 +95,48 @@
           class="h-100 editable-block"
         >
           <div
-            class="add-element d-flex align-items-center justify-items-between mr-3 mt-3 pr-1"
+            class="toolbox border-0 p-2 m-0 text-light text-center"
           >
-            <b-button
-              variant="link"
-              class="text-light"
-              @click="openDisplayElementSelector(index)"
+            <div
+              v-if="unsavedBlocks.has(index)"
+              :title="$t('tooltip.unsavedChanges')"
+              class="btn border-0"
             >
               <font-awesome-icon
-                :icon="['fas', 'plus']"
-                class="h4 mb-0"
+                :icon="['fas', 'exclamation-triangle']"
+                class="text-warning"
               />
-            </b-button>
+            </div>
 
-            <b-button
-              variant="link"
-              class="text-light"
-              :title="$t('builder:tooltip.edit.block')"
-              @click="editBlock(index)"
-            >
-              <font-awesome-icon
-                :icon="['far', 'edit']"
-                class="h5 mb-0"
-              />
-            </b-button>
+            <b-button-group>
+              <b-button
+                :title="$t('builder:tooltip.add.displayElement')"
+                variant="outline-light"
+                class="border-0"
+                @click="openDisplayElementSelector(index)"
+              >
+                <font-awesome-icon
+                  :icon="['fas', 'plus']"
+                />
+              </b-button>
+
+              <b-button
+                :title="$t('builder:tooltip.edit.block')"
+                variant="outline-light"
+                class="border-0"
+                @click="editBlock(index)"
+              >
+                <font-awesome-icon
+                  :icon="['far', 'edit']"
+                />
+              </b-button>
+            </b-button-group>
 
             <c-input-confirm
+              :tooltip="$t('builder:tooltip.delete.block')"
+              link
               size="md"
-              variant="link text-danger"
+              class="ml-1"
               @confirmed="deleteBlock(index)"
             />
           </div>
@@ -127,6 +147,7 @@
             :block="block"
             :scenario="currentSelectedScenario"
             :report-i-d="reportID"
+            @item-updated="onBlockUpdated"
           />
         </div>
       </template>
@@ -142,11 +163,11 @@
       size="xl"
       body-class="p-0 border-top-0"
       header-class="pb-0 px-3 pt-3 border-bottom-0"
+      no-fade
       @ok="updateBlock()"
     >
       <b-tabs
         v-if="currentBlock"
-        active-nav-item-class="bg-grey"
         nav-wrapper-class="bg-white border-bottom"
         active-tab-class="tab-content h-auto overflow-auto"
         card
@@ -205,7 +226,7 @@
               {{ name || kind }}
               <font-awesome-icon
                 :icon="['fas', 'bars']"
-                class="grab text-grey"
+                class="grab"
               />
             </template>
 
@@ -225,17 +246,21 @@
 
     <b-modal
       v-model="datasources.showConfigurator"
-      size="xl"
-      scrollable
-      :ok-title="$t('builder:datasources.save')"
-      ok-variant="primary"
       :title="$t('builder:datasources.label')"
+      :ok-title="$t('general:label.saveAndClose')"
+      ok-variant="primary"
+      :ok-disabled="datasourceSaveDisabled"
+      cancel-variant="link"
+      :cancel-disabled="datasources.processing"
+      scrollable
+      size="xl"
       body-class="py-3"
-      @ok="refreshReport()"
+      no-fade
+      @ok="saveDatasources"
     >
       <configurator
         v-if="report"
-        :items="reportDatasources"
+        :items="datasources.tempItems"
         :current-index="datasources.currentIndex"
         draggable
         @select="setCurrentDatasource"
@@ -252,11 +277,12 @@
 
         <template #configurator>
           <component
-            :is="getDatasourceComponent(reportDatasources[datasources.currentIndex])"
+            :is="getDatasourceComponent(datasources.tempItems[datasources.currentIndex])"
             v-if="currentDatasourceStep"
             :index="datasources.currentIndex"
-            :datasources="reportDatasources"
+            :datasources="datasources.tempItems"
             :step.sync="currentDatasourceStep"
+            :creating="datasources.tempItems[datasources.currentIndex].meta.creating"
           />
         </template>
       </configurator>
@@ -269,6 +295,7 @@
       hide-footer
       :title="$t('builder:add.display-element')"
       body-class="px-0 py-3"
+      no-fade
     >
       <selector
         :items="displayElements.types"
@@ -283,6 +310,7 @@
       hide-footer
       :title="$t('builder:add.datasource')"
       body-class="px-0 py-3"
+      no-fade
     >
       <selector
         :items="datasources.types"
@@ -299,6 +327,7 @@
       ok-variant="primary"
       :title="$t('builder:scenarios.label')"
       body-class="py-3"
+      no-fade
     >
       <configurator
         v-if="report"
@@ -355,7 +384,8 @@
 </template>
 
 <script>
-import { reporter } from '@cortezaproject/corteza-js'
+import { cloneDeep } from 'lodash'
+import { system, reporter } from '@cortezaproject/corteza-js'
 import report from 'corteza-webapp-reporter/src/mixins/report'
 import Grid from 'corteza-webapp-reporter/src/components/Report/Grid'
 import Block from 'corteza-webapp-reporter/src/components/Report/Blocks'
@@ -394,6 +424,8 @@ export default {
       showReport: true,
 
       report: undefined,
+
+      unsavedBlocks: new Set(),
 
       dataframes: [],
 
@@ -438,7 +470,9 @@ export default {
         showSelector: false,
         showConfigurator: false,
 
+        processing: false,
         currentIndex: undefined,
+        tempItems: [],
 
         types: [
           {
@@ -512,12 +546,12 @@ export default {
 
     currentDatasourceStep: {
       get () {
-        return this.datasources.currentIndex !== undefined ? this.reportDatasources[this.datasources.currentIndex].step : undefined
+        return this.datasources.currentIndex !== undefined ? this.datasources.tempItems[this.datasources.currentIndex].step : undefined
       },
 
       set (step) {
         if (this.datasources.currentIndex !== undefined) {
-          this.reportDatasources[this.datasources.currentIndex].step = step
+          this.datasources.tempItems[this.datasources.currentIndex].step = step
         }
       },
     },
@@ -600,12 +634,31 @@ export default {
         { text: this.$t('builder:layout-options.vertical'), value: 'vertical' },
       ]
     },
+
+    datasourceSaveDisabled () {
+      const uniqueDatasources = new Set()
+      const hasDuplicates = this.datasources.tempItems.some(({ step }) => {
+        const name = step[Object.keys(step)].name
+        return !name || uniqueDatasources.size === uniqueDatasources.add(name).size
+      })
+
+      return this.datasources.processing || hasDuplicates
+    },
+  },
+
+  beforeRouteUpdate (to, from, next) {
+    this.checkUnsavedBlocks(next)
+  },
+
+  beforeRouteLeave (to, from, next) {
+    this.checkUnsavedBlocks(next)
   },
 
   watch: {
     reportID: {
       immediate: true,
       handler (reportID) {
+        this.unsavedBlocks.clear()
         this.scenarios.selected = undefined
 
         if (reportID) {
@@ -655,17 +708,27 @@ export default {
         }
       }
 
-      return `${currentIndex}`
+      return `${this.$t('datasources:source')} ${currentIndex}`
     },
 
     openDatasourceSelector () {
       this.datasources.showSelector = true
-      this.datasources.currentIndex = this.reportDatasources.length ? 0 : undefined
+      this.datasources.currentIndex = this.datasources.tempItems.length ? 0 : undefined
     },
 
     openDatasourceConfigurator () {
       this.datasources.showConfigurator = true
-      this.datasources.currentIndex = this.reportDatasources.length ? 0 : undefined
+      this.datasources.tempItems = cloneDeep(this.reportDatasources).map(ds => {
+        ds.meta.creating = false
+        return ds
+      })
+      this.datasources.currentIndex = this.datasources.tempItems.length ? 0 : undefined
+    },
+
+    hideDatasourceConfigurator () {
+      this.datasources.showConfigurator = false
+      this.datasources.tempItems = []
+      this.datasources.currentIndex = undefined
     },
 
     setCurrentDatasource (index) {
@@ -673,8 +736,8 @@ export default {
     },
 
     deleteCurrentDataSource () {
-      this.reportDatasources.splice(this.datasources.currentIndex, 1)
-      this.datasources.currentIndex = this.reportDatasources.length ? 0 : undefined
+      this.datasources.tempItems.splice(this.datasources.currentIndex, 1)
+      this.datasources.currentIndex = this.datasources.tempItems.length ? 0 : undefined
     },
 
     addDatasource (kind = '') {
@@ -730,18 +793,41 @@ export default {
             })
         }
 
-        this.reportDatasources.push({
+        this.datasources.tempItems.push({
           step,
           meta: {},
         })
       }
 
       // Select newly added datasource in configurator
-      this.datasources.currentIndex = this.reportDatasources.length - 1
+      this.datasources.currentIndex = this.datasources.tempItems.length - 1
 
       // Close selector, open configurator
       this.datasources.showSelector = false
       this.datasources.showConfigurator = true
+    },
+
+    saveDatasources (hideEvent) {
+      // Prevent closing of modal and manually close it when request is complete
+      hideEvent.preventDefault()
+      this.datasources.processing = true
+
+      const sources = this.datasources.tempItems
+      const { reportID } = this.report
+
+      // Fetch saved report and merge with datasources
+      return this.$SystemAPI.reportRead({ reportID }).then(report => {
+        return this.$SystemAPI.reportUpdate(new system.Report({ ...report, sources }))
+      }).then(report => {
+        report.scenarios = this.report.scenarios
+        this.report = new system.Report(report)
+        this.refreshReport()
+        this.datasources.showConfigurator = false
+        this.toastSuccess(this.$t('notification:report.datasources.updated'))
+      }).catch(this.toastErrorHandler(this.$t('notification:report.datasources.updateFailed')))
+        .finally(() => {
+          this.datasources.processing = false
+        })
     },
 
     // Blocks
@@ -754,6 +840,7 @@ export default {
         .then(() => {
           this.mapBlocks()
           this.refreshReport()
+          this.unsavedBlocks.clear()
         })
     },
 
@@ -782,6 +869,8 @@ export default {
     },
 
     updateBlock () {
+      this.unsavedBlocks.add(this.blocks.currentIndex)
+
       if (this.currentBlock) {
         const elements = this.currentBlock.elements
 
@@ -800,6 +889,7 @@ export default {
 
     deleteBlock (index = undefined) {
       this.reindexBlocks(this.reportBlocks.filter((p, i) => index !== i))
+      this.unsavedBlocks.add(index)
     },
 
     // Display elements
@@ -827,6 +917,8 @@ export default {
 
       this.editBlock(this.blocks.currentIndex)
       this.setCurrentDisplayElement(this.currentBlock.elements.length - 1)
+
+      this.updateBlock()
     },
 
     // Scenarios
@@ -860,22 +952,47 @@ export default {
       this.scenarios.currentIndex = this.reportScenarios.length ? 0 : undefined
       this.setCurrentScenario(this.scenarios.currentIndex)
     },
+
+    getOptionKey (scenario) {
+      return scenario
+    },
+
+    // Trigger browser dialog on page leave to prevent unsaved changes
+    checkUnsavedBlocks (next) {
+      next(!this.unsavedBlocks.size || window.confirm(this.$t('builder:unsaved-changes')))
+    },
+
+    onBlockUpdated (index) {
+      this.unsavedBlocks.add(index)
+    },
   },
 }
 </script>
 
 <style lang="scss">
-.add-element {
+div.toolbox {
   position: absolute;
-  background-color: #1e2224;
+  background-color: $dark;
   bottom: 0;
   left: 0;
-  z-index: 1021;
-  opacity: 0.5;
+  z-index: 1001;
   border-top-right-radius: 10px;
+  opacity: 0.5;
+  pointer-events: none;
 
   &:hover {
     opacity: 1;
+  }
+
+  & * {
+    pointer-events: auto;
+  }
+}
+
+[dir="rtl"] {
+  div.toolbox {
+    left: 0;
+    right: auto;
   }
 }
 </style>

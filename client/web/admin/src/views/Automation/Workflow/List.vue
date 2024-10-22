@@ -1,6 +1,6 @@
 <template>
   <b-container
-    class="py-3"
+    fluid="xl"
   >
     <c-content-header
       :title="$t('title')"
@@ -15,6 +15,7 @@
         >
           {{ $t('new') }}
         </b-button>
+
         <c-permissions-button
           v-if="canGrant"
           resource="corteza::automation:workflow/*"
@@ -25,6 +26,7 @@
           {{ $t('permissions') }}
         </c-permissions-button>
       </span>
+
       <b-dropdown
         v-if="false"
         variant="link"
@@ -37,6 +39,7 @@
         </b-dropdown-item-button>
       </b-dropdown>
     </c-content-header>
+
     <c-resource-list
       :primary-key="primaryKey"
       :filter="filter"
@@ -54,8 +57,14 @@
         singlePluralPagination: 'admin:general.pagination.single',
         prevPagination: $t('admin:general.pagination.prev'),
         nextPagination: $t('admin:general.pagination.next'),
+        resourceSingle: $t('general:label.workflow.single'),
+        resourcePlural: $t('general:label.workflow.plural')
       }"
+      clickable
+      sticky-header
+      class="custom-resource-list-height"
       @search="filterList"
+      @row-clicked="handleRowClicked"
     >
       <template #header>
         <c-resource-list-status-filter
@@ -68,16 +77,79 @@
         />
       </template>
 
-      <template #actions="{ item }">
-        <b-button
-          size="sm"
-          variant="link"
-          :to="{ name: editRoute, params: { [primaryKey]: item[primaryKey] } }"
+      <template #actions="{ item: w }">
+        <b-dropdown
+          v-if="(areActionsVisible({ resource: w, conditions: ['canGrant', 'canDeleteWorkflow'] }) && w.workflowID)"
+          boundary="viewport"
+          variant="outline-light"
+          toggle-class="d-flex align-items-center justify-content-center text-primary border-0 py-2"
+          no-caret
+          dropleft
+          lazy
+          menu-class="m-0"
         >
-          <font-awesome-icon
-            :icon="['fas', 'pen']"
-          />
-        </b-button>
+          <template #button-content>
+            <font-awesome-icon
+              :icon="['fas', 'ellipsis-v']"
+            />
+          </template>
+
+          <b-dropdown-item
+            v-if="w.workflowID && canGrant"
+            link-class="p-0"
+            variant="light"
+          >
+            <c-permissions-button
+              :title="w.meta.name || w.handle || w.workflowID"
+              :target="w.meta.name || w.handle || w.workflowID"
+              :resource="`corteza::automation:workflow/${w.workflowID}`"
+              button-variant="link dropdown-item text-decoration-none text-dark regular-font rounded-0"
+            >
+              <font-awesome-icon :icon="['fas', 'lock']" />
+              {{ $t('permissions') }}
+            </c-permissions-button>
+          </b-dropdown-item>
+
+          <c-input-confirm
+            v-if="w.canDeleteWorkflow && !w.deletedAt"
+            borderless
+            variant="link"
+            size="md"
+            button-class="dropdown-item text-decoration-none text-dark regular-font rounded-0"
+            class="w-100"
+            @confirmed="handleDelete(w)"
+          >
+            <font-awesome-icon
+              :icon="['far', 'trash-alt']"
+              class="text-danger"
+            />
+            <span
+              class="p-1"
+            >
+              {{ $t('delete') }}
+            </span>
+          </c-input-confirm>
+
+          <c-input-confirm
+            v-if="w.canUndeleteWorkflow && w.deletedAt"
+            borderless
+            variant="link"
+            size="md"
+            button-class="dropdown-item text-decoration-none text-dark regular-font rounded-0"
+            class="w-100"
+            @confirmed="handleDelete(w)"
+          >
+            <font-awesome-icon
+              :icon="['far', 'trash-alt']"
+              class="text-danger"
+            />
+            <span
+              class="p-1"
+            >
+              {{ $t('undelete') }}
+            </span>
+          </c-input-confirm>
+        </b-dropdown>
       </template>
     </c-resource-list>
   </b-container>
@@ -143,7 +215,7 @@ export default {
         },
         {
           key: 'actions',
-          tdClass: 'text-right',
+          class: 'actions',
         },
       ].map(c => ({
         ...c,
@@ -170,6 +242,14 @@ export default {
   methods: {
     items () {
       return this.procListResults(this.$AutomationAPI.workflowList(this.encodeListParams()))
+    },
+
+    handleDelete (workflow) {
+      this.handleItemDelete({
+        resource: workflow,
+        resourceName: 'workflow',
+        api: 'automation',
+      })
     },
   },
 }

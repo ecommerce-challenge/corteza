@@ -99,6 +99,7 @@ endpoints:
       - { name: expiresAt,    type: '*time.Time',                 title: Date and time from client is no logner valid }
       - { name: security,     type: '*types.AuthClientSecurity',  title: Security settings, allowed, denied, forced roles, parser: "types.ParseAuthClientSecurity" }
       - { name: labels,       type: 'map[string]string',          title: Labels, parser: label.ParseStrings }
+      - { type: "*time.Time", name: updatedAt, required: false, title: Last update (or creation) date }
   - name: read
     method: GET
     title: Read client details
@@ -149,6 +150,27 @@ endpoints:
         name: clientID
         required: true
         title: Client ID
+
+- title: Expressions
+  path: "/expressions"
+  entrypoint: expression
+  endpoint: expressions
+  authentication: []
+  apis:
+  - name: evaluate
+    method: POST
+    title: Evaluate expressions
+    path: "/evaluate"
+    parameters:
+      post:
+        - name: variables
+          type: map[string]interface{}
+          parser: parseMapStringInterface
+          title: variables
+        - name: expressions
+          type: map[string]string
+          parser: parseMapStringString
+          title: expressions
 
 - title: Settings
   path: "/settings"
@@ -223,6 +245,7 @@ endpoints:
   imports:
     - github.com/cortezaproject/corteza/server/pkg/label
     - github.com/cortezaproject/corteza/server/system/types
+    - time
   apis:
   - name: list
     method: GET
@@ -263,6 +286,7 @@ endpoints:
       - { type: "[]string",           name: "members",    required: false, title: "role member IDs" }
       - { type: "*types.RoleMeta",    name: "meta",                        title: "Meta",            parser: "types.ParseRoleMeta" }
       - { type: "map[string]string",  name: "labels",                      title: "Labels",          parser: "label.ParseStrings" }
+      - { type: "*time.Time", name: updatedAt, required: false, title: Last update (or creation) date }
   - name: read
     method: GET
     title: Read role details and memberships
@@ -424,6 +448,7 @@ endpoints:
   imports:
     - github.com/cortezaproject/corteza/server/pkg/label
     - github.com/cortezaproject/corteza/server/system/types
+    - time
   apis:
   - name: list
     method: GET
@@ -534,7 +559,6 @@ endpoints:
         title: Email
       - name: name
         type: string
-        required: true
         title: Name
       - name: handle
         type: string
@@ -548,6 +572,7 @@ endpoints:
         name: labels
         title: Labels
         parser: label.ParseStrings
+      - { type: "*time.Time", name: updatedAt, required: false, title: Last update (or creation) date }
   - name: partialUpdate
     method: PATCH
     title: Patch user (experimental)
@@ -710,6 +735,59 @@ endpoints:
        - { type: uint64, name: userID,        required: true, title: ID }
        - { type: uint64, name: credentialsID, required: true, title: Credentials ID }
 
+  - name: profileAvatar
+    method: POST
+    title: User's profile avatar
+    path: "/{userID}/avatar"
+    parameters:
+      path:
+        - type: uint64
+          name: userID
+          required: true
+          title: User ID
+      post:
+        - name: upload
+          type: "*multipart.FileHeader"
+          title: Avatar to upload
+          required: false
+        - name: width
+          type: uint
+          title: Avatar width dimension
+          required: false
+        - name: height
+          type: uint
+          title: Avatar height dimension
+          required: false
+  - name: profileAvatarInitial
+    method: POST
+    title: User profile avatar initial
+    path: "/{userID}/avatar-initial"
+    parameters:
+      path:
+        - type: uint64
+          name: userID
+          required: true
+          title: User ID
+      post:
+        - name: avatarColor
+          type: string
+          title: Avatar text color
+          required: false
+        - name: avatarBgColor
+          type: string
+          title: Avatar initial background color
+          required: false
+  - name: deleteAvatar
+    method: DELETE
+    title: delete user's profile avatar
+    path: "/{userID}/avatar"
+    parameters:
+      path:
+        - type: uint64
+          name: userID
+          required: true
+          title: User ID
+
   - name: export
     method: GET
     title: Export users
@@ -760,6 +838,7 @@ endpoints:
   - Session ID
   imports:
     - github.com/cortezaproject/corteza/server/system/types
+    - time
   apis:
   - name: list
     method: GET
@@ -800,6 +879,7 @@ endpoints:
       - { name: "handle", type: "string",                        required: false }
       - { name: "level",  type: "int",                           required: true }
       - { name: "meta",   type: "types.DalSensitivityLevelMeta", required: true,  parser: "types.ParseDalSensitivityLevelMeta" }
+      - { type: "*time.Time", name: updatedAt, required: false, title: Last update (or creation) date }
 
   - name: read
     method: GET
@@ -843,6 +923,7 @@ endpoints:
   - Session ID
   imports:
     - github.com/cortezaproject/corteza/server/system/types
+    - time
   apis:
   - name: list
     method: GET
@@ -887,6 +968,7 @@ endpoints:
       - { name: type,   type: "string",                 required: true }
       - { name: meta,   type: "types.ConnectionMeta",   required: true, parser: "types.ParseConnectionMeta" }
       - { name: config, type: "types.ConnectionConfig", required: true, parser: "types.ParseConnectionConfig" }
+      - { type: "*time.Time", name: updatedAt, required: false, title: Last update (or creation) date }
 
   - name: read
     method: GET
@@ -914,6 +996,7 @@ endpoints:
   imports:
     - github.com/cortezaproject/corteza/server/pkg/label
     - sqlxTypes github.com/jmoiron/sqlx/types
+    - time
   apis:
   - name: list
     method: GET
@@ -1021,6 +1104,7 @@ endpoints:
         name: labels
         title: Labels
         parser: label.ParseStrings
+      - { type: "*time.Time", name: updatedAt, required: false, title: Last update (or creation) date }
 
   - name: upload
     path: "/upload"
@@ -1353,6 +1437,16 @@ endpoints:
         name: reminderID
         required: true
         title: reminder ID
+  - name: undismiss
+    method: PATCH
+    title: Undismiss reminder
+    path: "/{reminderID}/undismiss"
+    parameters:
+      path:
+      - type: uint64
+        name: reminderID
+        required: true
+        title: reminder ID
   - name: snooze
     method: PATCH
     title: Snooze reminder
@@ -1449,6 +1543,7 @@ endpoints:
   imports:
     - github.com/cortezaproject/corteza/server/system/types
     - github.com/cortezaproject/corteza/server/pkg/label
+    - time
   authentication:
   - Client ID
   - SessionID
@@ -1574,6 +1669,7 @@ endpoints:
         type: map[string]string
         title: Labels
         parser: label.ParseStrings
+      - { type: "*time.Time", name: updatedAt, required: false, title: Last update (or creation) date }
   - name: delete
     method: DELETE
     title: Delete template
@@ -1634,6 +1730,7 @@ endpoints:
     - github.com/cortezaproject/corteza/server/pkg/label
     - github.com/cortezaproject/corteza/server/system/types
     - github.com/cortezaproject/corteza/server/system/reporting
+    - time
   apis:
   - name: list
     method: GET
@@ -1698,6 +1795,7 @@ endpoints:
       - { name: sources,      type: "types.ReportDataSourceSet",  title: Report sources definition }
       - { name: blocks,       type: "types.ReportBlockSet",       title: Report blocks definition }
       - { name: labels,       type: 'map[string]string',          title: Labels,                  parser: label.ParseStrings }
+      - { type: "*time.Time", name: updatedAt, required: false, title: Last update (or creation) date }
   - name: read
     method: GET
     title: Read report details
@@ -1864,6 +1962,7 @@ endpoints:
   path: "/queues"
   imports:
     - github.com/cortezaproject/corteza/server/system/types
+    - time
   apis:
   - name: list
     method: GET
@@ -1904,6 +2003,7 @@ endpoints:
       - { type: string,             name: queue,     required: true,  title: Name of queue  }
       - { type: string,             name: consumer,  required: true,  title: Queue consumer }
       - { type: "types.QueueMeta",  name: meta,      required: false, title: Meta data for queue, parser: "types.ParseQueueMeta" }
+      - { type: "*time.Time", name: updatedAt, required: false, title: Last update (or creation) date }
   - name: delete
     method: DELETE
     title: Messaging queue delete
@@ -1926,6 +2026,7 @@ endpoints:
   imports:
     - github.com/cortezaproject/corteza/server/system/types
     - github.com/cortezaproject/corteza/server/pkg/label
+    - time
   apis:
   - name: list
     method: GET
@@ -1965,6 +2066,7 @@ endpoints:
       - { name: enabled,  type: bool,                   title: "Is route enabled" }
       - { name: group,    type: uint64,                 title: "Route group" }
       - { name: meta,     type: "types.ApigwRouteMeta", title: "Route meta", parser: "types.ParseApigwRouteMeta" }
+      - { type: "*time.Time", name: updatedAt, required: false, title: Last update (or creation) date }
   - name: read
     method: GET
     title: Read route details
@@ -1987,6 +2089,7 @@ endpoints:
   authentication: []
   imports:
     - github.com/cortezaproject/corteza/server/system/types
+    - time
   apis:
   - name: list
     method: GET
@@ -2025,6 +2128,7 @@ endpoints:
       - { name: ref,      type: string,                  title: "Filter ref" }
       - { name: enabled,  type: bool,                    title: "Is Filter enabled" }
       - { name: params,   type: "types.ApigwFilterParams", title: "Filter parameters", parser: "types.ParseApigwfFilterParams" }
+      - { type: "*time.Time", name: updatedAt, required: false, title: Last update (or creation) date }
   - name: read
     method: GET
     title: Read filter details
@@ -2097,6 +2201,8 @@ endpoints:
 - title: Locale
   entrypoint: locale
   path: "/locale"
+  imports:
+    - time
   apis:
   - name: list resource
     method: GET
@@ -2139,6 +2245,7 @@ endpoints:
       - { name: place,    type: int,    title: place }
       - { name: message,  type: string, title: Message }
       - { name: ownerID,  type: uint64, title: OwnerID }
+      - { type: "*time.Time", name: updatedAt, required: false, title: Last update (or creation) date }
 
   - name: read resource
     method: GET

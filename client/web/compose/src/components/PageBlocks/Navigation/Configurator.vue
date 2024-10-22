@@ -2,11 +2,13 @@
   <div>
     <b-tab :title="$t('navigation.label')">
       <div class="mb-3">
-        <h5 class="text-primary">
+        <h5>
           {{ $t("navigation.displayOptions") }}
         </h5>
 
-        <b-row class="justify-content-between">
+        <b-row
+          class="justify-content-between text-primary"
+        >
           <b-col
             cols="12"
             sm="4"
@@ -14,37 +16,41 @@
           >
             <b-form-group
               horizontal
+              variant="primary"
               :label="$t('navigation.appearance')"
             >
               <b-form-radio-group
                 v-model="options.display.appearance"
                 buttons
-                button-variant="outline-secondary"
+                button-variant="outline-primary"
                 :options="appearanceOptions"
+                size="sm"
               />
             </b-form-group>
           </b-col>
 
           <b-col
-            sm="4"
+            cols="12"
+            md="4"
             class="mb-2 mb-sm-0"
           >
             <b-form-group
               horizontal
-              :label="$t('navigation.fillJustify')"
+              :label="$t('navigation.justify')"
             >
               <b-form-radio-group
-                v-model="options.display.fillJustify"
+                v-model="options.display.justify"
                 buttons
-                button-variant="outline-secondary"
-
-                :options="fillJustifyOptions"
+                button-variant="outline-primary"
+                :options="justifyOptions"
+                size="sm"
               />
             </b-form-group>
           </b-col>
 
           <b-col
-            sm="4"
+            cols="12"
+            md="4"
             class="mb-2 mb-sm-0"
           >
             <b-form-group
@@ -54,34 +60,23 @@
               <b-form-radio-group
                 v-model="options.display.alignment"
                 buttons
-                button-variant="outline-secondary"
+                button-variant="outline-primary"
                 :options="alignmentOptions"
+                size="sm"
               />
             </b-form-group>
           </b-col>
         </b-row>
       </div>
 
+      <hr class="my-2">
+
       <div class="mb-3 mt-2">
         <div class="d-flex align-items-center mb-4">
-          <h5 class="text-primary mb-0">
+          <h5 class="mb-0">
             {{ $t("navigation.navigationItems") }}
           </h5>
-
-          <b-button
-            variant="link"
-            class="d-flex align-items-center text-decoration-none"
-            @click="addNavigationItem"
-          >
-            <font-awesome-icon
-              :icon="['fas', 'plus']"
-              size="sm"
-              class="mr-1"
-            />
-            {{ $t("navigation.add") }}
-          </b-button>
         </div>
-
         <div class="mt-3">
           <draggable
             v-model="block.options.navigationItems"
@@ -96,20 +91,25 @@
 
               <b-table-simple
                 borderless
+                responsive="lg"
+                small
               >
                 <thead>
                   <tr>
                     <th style="width: auto;" />
-                    <th>
+                    <th style="min-width: 200px;">
                       {{ $t("navigation.type") }}
                     </th>
-                    <th>
+                    <th style="min-width: 200px;">
                       {{ $t("navigation.color") }}
                     </th>
-                    <th>
+                    <th style="min-width: 200px;">
                       {{ $t("navigation.background") }}
                     </th>
-                    <th class="text-center">
+                    <th
+                      class="text-center"
+                      style="width: 50px; min-width: 50px;"
+                    >
                       {{ $t("navigation.enabled") }}
                     </th>
                     <th style="width: auto; min-width: 100px;" />
@@ -120,7 +120,7 @@
                     <td class="align-middle">
                       <font-awesome-icon
                         :icon="['fas', 'bars']"
-                        class="grab text-grey"
+                        class="grab text-light"
                       />
                     </td>
                     <td class="align-middle">
@@ -130,26 +130,30 @@
                       />
                     </td>
                     <td class="align-middle">
-                      <b-form-input
+                      <c-input-color-picker
                         v-model="item.options.textColor"
-                        type="color"
-                        debounce="300"
+                        :translations="{
+                          modalTitle: $t('navigation.colorPicker'),
+                          saveBtnLabel: $t('general:label.saveAndClose')
+                        }"
                         class="w-100"
                       />
                     </td>
                     <td class="align-middle">
-                      <b-form-input
+                      <c-input-color-picker
                         v-model="item.options.backgroundColor"
-                        type="color"
-                        debounce="300"
+                        :translations="{
+                          modalTitle: $t('navigation.colorPicker'),
+                          saveBtnLabel: $t('general:label.saveAndClose')
+                        }"
                         class="w-100"
                       />
                     </td>
-                    <td class="align-middle text-center">
-                      <b-form-checkbox
+                    <td class="d-flex align-items-center justify-content-center">
+                      <c-input-checkbox
                         v-model="item.options.enabled"
                         switch
-                        class="mb-0"
+                        :labels="{}"
                       />
                     </td>
                     <td class="align-middle">
@@ -171,6 +175,30 @@
               </b-table-simple>
             </div>
           </draggable>
+
+          <div
+            v-if="!block.options.navigationItems.length"
+            class="text-center my-4"
+          >
+            <p>
+              {{ $t('navigation.noNavigationItems') }}
+            </p>
+          </div>
+        </div>
+
+        <div class="d-flex align-items-center mb-4">
+          <b-button
+            variant="primary"
+            class="d-flex align-items-center text-decoration-none"
+            @click="addNavigationItem"
+          >
+            <font-awesome-icon
+              :icon="['fas', 'plus']"
+              size="sm"
+              class="mr-1"
+            />
+            {{ $t("navigation.add") }}
+          </b-button>
         </div>
       </div>
     </b-tab>
@@ -185,6 +213,8 @@ import Text from './NavTypes/Text.vue'
 import Url from './NavTypes/Url.vue'
 import Compose from './NavTypes/ComposePage.vue'
 import Dropdown from './NavTypes/Dropdown.vue'
+import { components } from '@cortezaproject/corteza-vue'
+const { CInputColorPicker } = components
 
 export default {
   i18nOptions: {
@@ -197,6 +227,7 @@ export default {
     Url,
     Compose,
     Dropdown,
+    CInputColorPicker,
   },
 
   extends: base,
@@ -215,9 +246,9 @@ export default {
         { value: 'right', text: this.$t('navigation.right') },
       ],
 
-      fillJustifyOptions: [
-        { value: 'fill', text: this.$t('navigation.fill') },
+      justifyOptions: [
         { value: 'justify', text: this.$t('navigation.justify') },
+        { value: 'none', text: this.$t('navigation.none') },
       ],
 
       backgroundColors: [
@@ -238,16 +269,23 @@ export default {
     }
   },
 
+  beforeDestroy () {
+    this.setDefaultValues()
+  },
+
   methods: {
     addNavigationItem () {
       this.block.options.navigationItems.push(
         compose.PageBlockNavigation.makeNavigationItem({
           type: 'compose',
           options: {
-            backgroundColor: '#ffffff',
+            backgroundColor: '#FFFFFF00',
             item: {
+              label: '',
+              url: '',
               align: 'bottom',
               target: 'sameTab',
+              displaySubPages: false,
               dropdown: {
                 label: '',
                 items: [],
@@ -256,6 +294,14 @@ export default {
           },
         }),
       )
+    },
+
+    setDefaultValues () {
+      this.appearanceOptions = []
+      this.alignmentOptions = []
+      this.justifyOptions = []
+      this.backgroundColors = []
+      this.navigationItemTypes = []
     },
   },
 }

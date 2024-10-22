@@ -1,34 +1,53 @@
 <template>
   <div>
     <portal to="sidebar-header-expanded">
-      <vue-select
+      <b-input-group
         v-if="!hideNamespaceList"
-        key="namespaceID"
-        data-test-id="select-namespace"
-        label="name"
-        class="namespace-selector sticky-top bg-white mt-2"
-        :clearable="false"
-        :options="namespaces"
-        :value="namespace"
-        :selectable="option => option.namespaceID !== namespace.namespaceID"
-        :placeholder="$t('pickNamespace')"
-        @option:selected="namespaceSelected"
+        class="d-flex w-100 mt-2"
       >
-        <template #list-header>
-          <li
-            v-if="showNamespaceListLink"
-            class="border-bottom text-center mb-1"
-          >
-            <router-link
-              :to="{ name: 'namespace.manage' }"
-              data-test-id="button-manage-namespaces"
-              class="d-block my-1 font-weight-bold text-decoration-none"
+        <vue-select
+          key="namespaceID"
+          data-test-id="select-namespace"
+          label="name"
+          :clearable="false"
+          :options="filteredNamespaces"
+          :get-option-key="getOptionKey"
+          :value="namespace"
+          :selectable="option => option.namespaceID !== namespace.namespaceID"
+          :placeholder="$t('pickNamespace')"
+          :calculate-position="calculateDropdownPosition"
+          :autoscroll="false"
+          @option:selected="namespaceSelected"
+        >
+          <template #list-header>
+            <li
+              v-if="showNamespaceListLink"
+              class="border-bottom text-center mb-1"
             >
-              {{ $t('manageNamespaces') }}
-            </router-link>
-          </li>
-        </template>
-      </vue-select>
+              <router-link
+                :to="{ name: 'namespace.manage' }"
+                data-test-id="button-manage-namespaces"
+                class="d-block my-1 font-weight-bold text-decoration-none"
+              >
+                {{ $t('manageNamespaces') }}
+              </router-link>
+            </li>
+          </template>
+        </vue-select>
+
+        <b-input-group-append v-if="canManageNamespaces">
+          <b-button
+            data-test-id="button-namespace-edit"
+            :disabled="!canUpdateNamespace"
+            :title="$t('editNamespace')"
+            variant="primary"
+            class="d-flex align-items-center"
+            :to="{ name: 'namespace.edit', params: { namespaceID: namespaceID } }"
+          >
+            <font-awesome-icon :icon="['far', 'edit']" />
+          </b-button>
+        </b-input-group-append>
+      </b-input-group>
     </portal>
 
     <portal
@@ -38,32 +57,32 @@
         v-if="namespace"
         class="d-flex flex-column flex-grow-1"
       >
-        <b-button
-          v-if="isAdminPage"
-          data-test-id="button-public"
-          variant="light"
-          class="w-100 mb-2"
-          :to="{ name: 'pages', params: { slug: namespace.slug || namespace.namespaceID } }"
-        >
-          {{ $t('publicPages') }}
-        </b-button>
-
-        <b-button
-          v-else-if="namespace.canManageNamespace"
-          data-test-id="button-admin"
-          variant="light"
-          class="w-100 mb-2"
-          :to="{ name: 'admin.modules', params: { slug: namespace.slug || namespace.namespaceID } }"
-        >
-          {{ $t('adminPanel') }}
-        </b-button>
-
-        <c-input-search
-          v-model.trim="query"
-          :disabled="loading"
-          :placeholder="$t(`searchPlaceholder.${isAdminPage ? 'admin' : 'public'}`)"
-          :autocomplete="'off'"
-        />
+        <div class="sticky-top bg-white w-100 py-2">
+          <b-button
+            v-if="isAdminPage"
+            data-test-id="button-public"
+            variant="light"
+            class="w-100 mb-2"
+            :to="{ name: 'pages', params: { slug: namespace.slug || namespace.namespaceID } }"
+          >
+            {{ $t('publicPages') }}
+          </b-button>
+          <b-button
+            v-else-if="namespace.canManageNamespace"
+            data-test-id="button-admin"
+            variant="light"
+            class="w-100 mb-2"
+            :to="{ name: 'admin.modules', params: { slug: namespace.slug || namespace.namespaceID } }"
+          >
+            {{ $t('adminPanel') }}
+          </b-button>
+          <c-input-search
+            v-model.trim="query"
+            :disabled="loading"
+            :placeholder="$t(`searchPlaceholder.${isAdminPage ? 'admin' : 'public'}`)"
+            :autocomplete="'off'"
+          />
+        </div>
 
         <div
           v-if="!loading"
@@ -102,36 +121,6 @@ import { Portal } from 'portal-vue'
 import { VueSelect } from 'vue-select'
 const { CSidebarNavItems, CInputSearch } = components
 
-const publicPageWrap = ({ pageID, selfID, title, visible }) => ({
-  page: {
-    // name omitted as default is provided
-    pageID,
-    selfID,
-    title,
-    visible,
-  },
-  children: [],
-  params: {
-    pageID,
-  },
-})
-
-const adminPageWrap = (page) => {
-  return {
-    page: {
-      name: 'admin.pages.builder',
-      pageID: `page-${page.pageID}`,
-      selfID: page.selfID !== NoID ? `page-${page.selfID}` : 'pages',
-      rootSelfID: 'pages',
-      title: page.title || page.handle,
-      visible: true,
-    },
-    children: [],
-    params: {
-      pageID: page.pageID,
-    },
-  }
-}
 const moduleWrap = (module) => {
   return {
     page: {
@@ -240,8 +229,7 @@ export default {
     filteredPages () {
       if (this.namespace) {
         // If on admin page, show admin pages. Otherwise show public pages
-        const pages = [...(this.isAdminPage ? this.adminRoutes() : this.publicRoutes.map(publicPageWrap))]
-
+        const pages = [...(this.isAdminPage ? this.adminRoutes() : this.publicPageWrap(this.publicRoutes))]
         if (!this.query) {
           return pages
         }
@@ -252,9 +240,13 @@ export default {
       return []
     },
 
+    filteredNamespaces () {
+      return this.namespaces.filter(({ enabled }) => enabled)
+    },
+
     navItems () {
       const current = this.filteredPages
-      const ax = this.pageIndex(this.isAdminPage ? this.adminRoutes() : this.pages.map(publicPageWrap))
+      const ax = this.pageIndex(this.isAdminPage ? this.adminRoutes() : this.publicPageWrap(this.pages))
 
       // Correct potentially missing parent references
       for (const cp of current) {
@@ -299,6 +291,14 @@ export default {
       }
 
       return current
+    },
+
+    canUpdateNamespace () {
+      return this.namespace ? this.namespace.canUpdateNamespace : false
+    },
+
+    namespaceID () {
+      return this.namespace ? this.namespace.namespaceID : NoID
     },
   },
 
@@ -369,7 +369,7 @@ export default {
           },
           children: [],
         },
-        ...this.pages.map(adminPageWrap),
+        ...this.adminPageWrap(this.pages),
         {
           page: {
             pageID: 'charts',
@@ -383,38 +383,72 @@ export default {
         ...this.charts.map(chartWrap),
       ]
     },
+
+    publicPageWrap (pages) {
+      return pages.map(({ pageID, selfID, title, visible, config }) => {
+        const { navItem = {} } = config
+        const { icon = {}, expanded = '' } = navItem
+        const { type = '', src = '' } = icon
+
+        const iconType = 'attachment'
+        let iconSrc = src
+
+        if (type === iconType) {
+          iconSrc = `${this.$ComposeAPI.baseURL}${src}`
+        }
+
+        return {
+          page: {
+            // name omitted as default is provided
+            pageID,
+            selfID,
+            title,
+            visible,
+            expanded,
+            icon: iconSrc,
+          },
+          children: [],
+          params: {
+            pageID,
+          },
+        }
+      })
+    },
+
+    adminPageWrap (pages) {
+      return pages.map(({ pageID, selfID, title, handle, config }) => {
+        const { navItem = {} } = config
+        const { icon = {} } = navItem
+        const { type = '', src = '' } = icon
+
+        const iconType = 'attachment'
+        let iconSrc = src
+
+        if (type === iconType) {
+          iconSrc = `${this.$ComposeAPI.baseURL}${src}`
+        }
+
+        return {
+          page: {
+            name: 'admin.pages.builder',
+            pageID: `page-${pageID}`,
+            selfID: selfID !== NoID ? `page-${selfID}` : 'pages',
+            rootSelfID: 'pages',
+            title: title || handle,
+            visible: true,
+            icon: iconSrc,
+          },
+          children: [],
+          params: {
+            pageID: pageID,
+          },
+        }
+      })
+    },
+
+    getOptionKey ({ namespaceID }) {
+      return namespaceID
+    },
   },
 }
 </script>
-
-<style lang="scss">
-.namespace-selector {
-  font-size: 1rem;
-  min-width: 100%;
-
-  .vs__dropdown-menu {
-    min-width: 100%;
-  }
-
-  .vs__dropdown-option {
-    text-overflow: ellipsis;
-    overflow-x: hidden;
-  }
-
-  .vs__selected-options {
-    flex-wrap: nowrap;
-  }
-
-  .vs__selected {
-    max-width: 230px;
-    display: inline-block;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .vs__open-indicator {
-    fill: $primary;
-  }
-}
-</style>

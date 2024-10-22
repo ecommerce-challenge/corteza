@@ -12,12 +12,11 @@
         class="wrap-with-vertical-gutters align-items-center"
       >
         <b-button
-          v-if="backLink"
           data-test-id="button-back-without-save"
           variant="link"
-          :to="backLink"
           :disabled="processing"
           class="text-dark back mr-auto"
+          @click="$emit('back')"
         >
           <font-awesome-icon
             :icon="['fas', 'chevron-left']"
@@ -48,6 +47,8 @@
         >
           {{ $t('label.delete') }}
         </c-input-confirm>
+
+        <slot name="saveAsCopy" />
         <b-button
           v-if="!hideClone"
           data-test-id="button-clone"
@@ -60,6 +61,7 @@
         >
           {{ $t('label.saveAsCopy') }}
         </b-button>
+
         <b-button
           v-if="!hideSave"
           data-test-id="button-save-and-close"
@@ -71,6 +73,7 @@
         >
           {{ $t('label.saveAndClose') }}
         </b-button>
+
         <b-button
           v-if="!hideSave"
           data-test-id="button-save"

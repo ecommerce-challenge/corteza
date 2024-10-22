@@ -123,6 +123,8 @@ export default {
         title: '',
         content: '',
       },
+
+      abortableRequests: [],
     }
   },
 
@@ -209,10 +211,22 @@ export default {
         this.refresh()
       },
     },
+
+    options: {
+      deep: true,
+      handler () {
+        this.refresh()
+      },
+    },
   },
 
   created () {
     this.refreshBlock(this.refresh)
+  },
+
+  beforeDestroy () {
+    this.abortRequests()
+    this.setDefaultValues()
   },
 
   methods: {
@@ -225,13 +239,6 @@ export default {
       return user.name || user.handle || user.email || ''
     },
 
-    fetchUsers () {
-      const userListID = this.records.map(r => {
-        return r.ownedBy
-      }).filter((x, i, r) => r.indexOf(x) === i)
-      this.$store.dispatch('user/fetchUsers', userListID)
-    },
-
     refresh () {
       if (!this.options.moduleID) {
       // Make sure block is properly configured
@@ -242,7 +249,7 @@ export default {
         this.fetchRecords(this.roModule, this.expandFilter())
           .then(rr => {
             this.records = rr
-            this.fetchUsers()
+            this.fetchUsers([{ name: 'ownedBy', kind: 'User', isSystem: true, isMulti: false }], this.records)
           })
           .catch(e => {
             console.error(e)
@@ -341,9 +348,26 @@ export default {
         sort,
       }
 
-      return this.$ComposeAPI
-        .recordList(params)
+      const { response, cancel } = this.$ComposeAPI
+        .recordListCancellable(params)
+      this.abortableRequests.push(cancel)
+
+      return response()
         .then(({ set }) => set.map(r => Object.freeze(new compose.Record(module, r))))
+    },
+
+    setDefaultValues () {
+      this.processing = false
+      this.filter = false
+      this.records = []
+      this.newRecord = {}
+      this.abortableRequests = []
+    },
+
+    abortRequests () {
+      this.abortableRequests.forEach((cancel) => {
+        cancel()
+      })
     },
   },
 }

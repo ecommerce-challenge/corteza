@@ -1,6 +1,7 @@
 <template>
-  <div
-    class="d-flex w-100 overflow-auto"
+  <b-container
+    fluid="xl"
+    class="d-flex flex-column py-3"
   >
     <portal to="topbar-title">
       {{ $t('title') }}
@@ -22,84 +23,129 @@
       </b-btn>
     </portal>
 
-    <b-container
-      class="ns-wrapper"
-      fluid="xl"
+    <c-resource-list
+      data-test-id="table-namespaces-list"
+      :primary-key="primaryKey"
+      :filter="filter"
+      :sorting="sorting"
+      :pagination="pagination"
+      :fields="namespacesFields"
+      :items="namespaceList"
+      :translations="{
+        searchPlaceholder: $t('namespace:searchPlaceholder'),
+        notFound: $t('general:resourceList.notFound'),
+        noItems: $t('general:resourceList.noItems'),
+        loading: $t('general:label.loading'),
+        showingPagination: 'general:resourceList.pagination.showing',
+        singlePluralPagination: 'general:resourceList.pagination.single',
+        prevPagination: $t('general:resourceList.pagination.prev'),
+        nextPagination: $t('general:resourceList.pagination.next'),
+        resourceSingle: $t('general:label.namespace.single'),
+        resourcePlural: $t('general:label.namespace.plural'),
+      }"
+      clickable
+      sticky-header
+      class="h-100"
+      @search="filterList"
+      @row-clicked="handleRowClicked"
     >
-      <b-row
-        class="my-3"
-        no-gutters
-      >
-        <c-resource-list
-          :primary-key="primaryKey"
-          :filter="filter"
-          :sorting="sorting"
-          :pagination="pagination"
-          :fields="namespacesFields"
-          :items="namespaceList"
-          :translations="{
-            searchPlaceholder: $t('namespace:searchPlaceholder'),
-            notFound: $t('general:resourceList.notFound'),
-            noItems: $t('general:resourceList.noItems'),
-            loading: $t('general:label.loading'),
-            showingPagination: 'general:resourceList.pagination.showing',
-            singlePluralPagination: 'general:resourceList.pagination.single',
-            prevPagination: $t('general:resourceList.pagination.prev'),
-            nextPagination: $t('general:resourceList.pagination.next'),
-          }"
-          clickable
-          class="h-100 w-100"
-          @search="filterList"
-          @row-clicked="handleRowClicked"
+      <template #header>
+        <div
+          class="wrap-with-vertical-gutters"
         >
-          <template #header>
-            <div
-              class="wrap-with-vertical-gutters"
+          <b-btn
+            v-if="canCreate"
+            data-test-id="button-create"
+            :to="{ name: 'namespace.create' }"
+            variant="primary"
+            size="lg"
+            class="mr-1 float-left"
+          >
+            {{ $t('toolbar.buttons.create') }}
+          </b-btn>
+
+          <importer-modal
+            v-if="canImport"
+            class="mr-1 float-left"
+            @imported="onImported"
+            @failed="onFailed"
+          />
+
+          <c-permissions-button
+            v-if="canGrant"
+            resource="corteza::compose:namespace/*"
+            button-variant="light"
+            :button-label="$t('toolbar.buttons.permissions')"
+            class="btn-lg float-left"
+          />
+        </div>
+      </template>
+
+      <template #enabled="{ item }">
+        <font-awesome-icon
+          :icon="['fas', item.enabled ? 'check' : 'times']"
+        />
+      </template>
+
+      <template #changedAt="{ item }">
+        {{ (item.deletedAt || item.updatedAt || item.createdAt) | locFullDateTime }}
+      </template>
+
+      <template #actions="{ item: n }">
+        <div>
+          <b-dropdown
+            v-if="n.canDeleteNamespace || n.canGrant"
+            variant="outline-light"
+            toggle-class="d-flex align-items-center justify-content-center text-primary border-0 py-2"
+            no-caret
+            dropleft
+            lazy
+            menu-class="m-0"
+          >
+            <template #button-content>
+              <font-awesome-icon
+                :icon="['fas', 'ellipsis-v']"
+              />
+            </template>
+
+            <b-dropdown-item
+              v-if="n.canGrant"
+              link-class="p-0"
+              variant="light"
             >
-              <b-btn
-                v-if="canCreate"
-                data-test-id="button-create"
-                :to="{ name: 'namespace.create' }"
-                variant="primary"
-                size="lg"
-                class="mr-1 float-left"
-              >
-                {{ $t('toolbar.buttons.create') }}
-              </b-btn>
-
-              <importer-modal
-                v-if="canImport"
-                class="mr-1 float-left"
-                @imported="onImported"
-                @failed="onFailed"
-              />
-
               <c-permissions-button
-                v-if="canGrant"
-                resource="corteza::compose:namespace/*"
-                button-variant="light"
-                :button-label="$t('toolbar.buttons.permissions')"
-                class="btn-lg float-left"
+                :title="n.name || n.slug || n.namespaceID"
+                :target="n.name || n.slug || n.namespaceID"
+                :resource="`corteza::compose:namespace/${n.namespaceID}`"
+                :tooltip="$t('permissions:resources.compose.namespace.tooltip')"
+                :button-label="$t('permissions:ui.label')"
+                button-variant="link dropdown-item text-decoration-none text-dark regular-font rounded-0"
               />
-            </div>
-          </template>
+            </b-dropdown-item>
 
-          <template #enabled="{ item }">
-            <font-awesome-icon
-              :icon="['fas', item.enabled ? 'check' : 'times']"
-            />
-          </template>
-
-          <template #changedAt="{ item }">
-            {{ (item.deletedAt || item.updatedAt || item.createdAt) | locFullDateTime }}
-          </template>
-        </c-resource-list>
-      </b-row>
-    </b-container>
-  </div>
+            <c-input-confirm
+              v-if="n.canDeleteNamespace"
+              borderless
+              variant="link"
+              size="md"
+              button-class="dropdown-item text-decoration-none text-dark regular-font rounded-0"
+              class="w-100"
+              @confirmed="handleDelete(n)"
+            >
+              <font-awesome-icon
+                :icon="['far', 'trash-alt']"
+                class="text-danger"
+              />
+              {{ $t('delete') }}
+            </c-input-confirm>
+          </b-dropdown>
+        </div>
+      </template>
+    </c-resource-list>
+  </b-container>
 </template>
 <script>
-import { mapGetters } from 'vuex'
+import { mapGetters, mapActions } from 'vuex'
 import ImporterModal from 'corteza-webapp-compose/src/components/Namespaces/Importer'
 import listHelpers from 'corteza-webapp-compose/src/mixins/listHelpers'
 
@@ -120,10 +166,8 @@ export default {
   data () {
     return {
       primaryKey: 'namespaceID',
-
-      pagination: {
-        limit: 13,
-      },
+      application: undefined,
+      isApplication: false,
 
       filter: {
         query: '',
@@ -190,15 +234,20 @@ export default {
         {
           key: 'actions',
           label: '',
-          tdClass: 'text-right text-nowrap',
+          tdClass: 'text-right text-nowrap actions',
         },
       ]
     },
   },
 
   methods: {
+    ...mapActions({
+      load: 'namespace/load',
+      deleteNamespace: 'namespace/delete',
+    }),
+
     onImported () {
-      this.$store.dispatch('namespace/load', { force: true })
+      this.load({ force: true })
         .then(() => {
           this.filterList()
           this.toastSuccess(this.$t('notification:namespace.imported'))
@@ -219,6 +268,36 @@ export default {
 
     namespaceList () {
       return this.procListResults(this.$ComposeAPI.namespaceList(this.encodeListParams()))
+    },
+
+    fetchApplication (namespace) {
+      const { namespaceID, slug } = namespace
+      return this.$SystemAPI.applicationList({ name: slug || namespaceID })
+        .then(({ set = [] }) => {
+          if (set.length) {
+            this.application = set[0]
+            this.isApplication = this.application.enabled
+          }
+        })
+        .catch(this.toastErrorHandler(this.$t('notification:namespace.deleteFailed')))
+    },
+
+    async handleDelete (namespace) {
+      this.fetchApplication(namespace).then(() => {
+        const { namespaceID } = namespace
+        const { applicationID } = this.application || {}
+        this.deleteNamespace({ namespaceID })
+          .catch(this.toastErrorHandler(this.$t('notification:namespace.deleteFailed')))
+          .then(() => {
+            if (applicationID) {
+              return this.$SystemAPI.applicationDelete({ applicationID })
+            }
+          })
+          .then(() => {
+            this.toastSuccess(this.$t('notification:namespace.deleted'))
+            this.filterList()
+          })
+      })
     },
   },
 }

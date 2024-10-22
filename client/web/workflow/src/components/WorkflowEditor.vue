@@ -311,6 +311,7 @@
       :hide-header-close="workflow.workflowID === '0'"
       :no-close-on-backdrop="workflow.workflowID === '0'"
       :no-close-on-esc="workflow.workflowID === '0'"
+      no-fade
     >
       <template #modal-title>
         {{ $t('editor:workflow-configuration') }}
@@ -401,6 +402,7 @@
       size="lg"
       scrollable
       hide-footer
+      no-fade
       body-class="p-0"
     >
       <help />
@@ -411,6 +413,7 @@
       v-model="issuesModal.show"
       :title="$t('editor:issues')"
       hide-footer
+      no-fade
     >
       <div
         v-for="(issue, index) in issuesModal.issues"
@@ -433,6 +436,7 @@
       :ok-title="`${dryRun.lookup ? this.$t('editor:load-and-configure') : this.$t('editor:run-workflow')}`"
       :cancel-title="$t('editor:back')"
       ok-variant="success"
+      no-fade
       @cancel.prevent="dryRun.lookup = true"
       @ok="dryRunOk"
     >
@@ -640,14 +644,8 @@ export default {
 
   computed: {
     getSidebarItemType () {
-      const { itemType } = this.sidebar
-      if (itemType) {
-        if (itemType === 'edge') {
-          return 'Connector'
-        }
-        return itemType.charAt(0).toUpperCase() + itemType.slice(1)
-      }
-      return itemType
+      const { item } = this.sidebar
+      return this.$t(`steps:${item.node.style}.short`) || item.node.style
     },
 
     getSidebarItemIcon () {
@@ -2209,12 +2207,6 @@ export default {
                 }
               }
 
-              // Reset state and refresh the trigger label so spinner disappears
-              this.dryRun.lookup = true
-              this.dryRun.processing = false
-              this.dryRun.sessionID = undefined
-              this.redrawLabel(this.graph.model.getCell(this.dryRun.cellID).mxObjectId)
-
               // If error or no stacktrace, raise an error/warning
               if (error) {
                 throw new Error(error)
@@ -2246,6 +2238,13 @@ export default {
 
           setTimeout(sessionReader, 1000)
         }).catch(this.toastErrorHandler(this.$t('notification:failed-test')))
+        .finally(() => {
+          // Reset state and refresh the trigger label so spinner disappears
+          this.dryRun.lookup = true
+          this.dryRun.processing = false
+          this.dryRun.sessionID = undefined
+          this.redrawLabel(this.graph.model.getCell(this.dryRun.cellID).mxObjectId)
+        })
     },
 
     cancelWorkflow () {
@@ -2557,7 +2556,7 @@ export default {
 }
 
 .toolbar {
-  background-color: #F3F3F5 !important;
+  background-color: $gray-200 !important;
   width: 66px;
 }
 

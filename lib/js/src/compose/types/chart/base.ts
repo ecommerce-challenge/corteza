@@ -6,6 +6,7 @@ import {
   Report,
   dimensionFunctions,
   makeAlias,
+  TemporalDataPoint,
 } from './util'
 
 import {
@@ -16,6 +17,10 @@ import {
 } from '../../../cast'
 
 export type PartialChart = Partial<BaseChart>
+
+// The default dataset post processing function to use.
+// This one simply returns the current value.
+const defaultFx = 'n'
 
 /**
  * BaseChart represents a structure that stores any configuration data.
@@ -41,6 +46,59 @@ export class BaseChart {
     this.merge(def)
   }
 
+  /**
+   * The method performs post processing for each value in the given dataset.
+   * It works with a simple equation written in javascript (example: n + m).
+   * Available variables to use:
+   * * n - current value
+   * * m - previous value (undefined in case of the first element)
+   * * r - entire data array.
+   *
+   * @param data Array of values in the given data set
+   * @param m Metric for the given dataset
+   */
+  datasetPostProc (data: Array<number|TemporalDataPoint>, m: Metric): Array<number|TemporalDataPoint> {
+    // Define a valid function to evaluate
+    let fxRaw = (m.fx || defaultFx).trim()
+    if (!fxRaw.startsWith('return')) {
+      fxRaw = 'return ' + fxRaw
+    }
+    const fx = new Function('n', 'm', 'r', fxRaw)
+
+    // Define a new array, so we don't alter the original one.
+    const r = [...data]
+
+    // Run postprocessing for all data in the given data set
+    // There is a slight difference between temporal data points and categorical data points.
+    if (data[0] instanceof Object) {
+      // Temporal
+      for (let i = 0; i < data.length; i++) {
+        const a = data[i] as TemporalDataPoint
+        const b = data[i - 1] as TemporalDataPoint|undefined
+
+        const n = a.y
+        let m: number|undefined
+        if (i > 0) {
+          m = b?.y
+        }
+
+        a.y = fx(n, m, r)
+      }
+    } else {
+      // Categorical
+      for (let i = 0; i < data.length; i++) {
+        const n = data[i] as number
+        let m: number|undefined
+        if (i > 0) {
+          m = data[i - 1] as number
+        }
+        data[i] = fx(n, m, r)
+      }
+    }
+
+    return data
+  }
+
   merge (c: PartialChart) {
     let conf = { ...(c.config || {}) }
     Apply(this, c, CortezaID, 'chartID', 'namespaceID')
@@ -57,6 +115,19 @@ export class BaseChart {
     }
 
     this.config = (conf ? _.merge(this.defConfig(), conf) : false) || this.config || this.defConfig()
+    this.config.reports?.forEach(report => {
+      const { dimensions = [], metrics = [] } = report || {}
+      report.dimensions = dimensions.map(d => {
+        //Legacy support
+        if (d.modifier === 'auto') {
+          d.timeLabels = true
+          d.modifier = '(no grouping / buckets)'
+        }
+
+        return _.merge(this.defDimension(), d)
+      })
+      report.metrics = metrics.map(m => _.merge(this.defMetrics(), m))
+    })
   }
 
   /**
@@ -68,7 +139,8 @@ export class BaseChart {
     if (!this.config.reports || !this.config.reports.length) {
       throw new Error('notification.chart.invalidConfig.missingReports')
     }
-    this.config.reports.map(({ moduleID, dimensions, metrics }) => {
+
+    this.config.reports.forEach(({ moduleID, dimensions, metrics }) => {
       if (!moduleID) {
         throw new Error('notification.chart.invalidConfig.missingModuleID')
       }
@@ -190,6 +262,7 @@ export class BaseChart {
     return {
       labels: this.processLabels(labels, dimension),
       datasets,
+      dimension,
     }
   }
 
@@ -255,7 +328,7 @@ export class BaseChart {
     return Object.assign({}, {
       conditions: {},
       meta: {},
-      rotateLabel: '0',
+      rotateLabel: 0,
     })
   }
 
@@ -273,7 +346,7 @@ export class BaseChart {
         axisType: 'linear',
         axisPosition: 'left',
         labelPosition: 'end',
-        rotateLabel: '0',
+        rotateLabel: 0,
       },
       tooltip: {},
       legend: {
@@ -303,6 +376,10 @@ export class BaseChart {
       colorScheme: '',
       reports: [this.defReport()],
       noAnimation: false,
+      toolbox: {
+        saveAsImage: false,
+        timeline: '',
+      },
     })
   }
 
